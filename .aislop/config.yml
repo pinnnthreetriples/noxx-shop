@@ -1,0 +1,7 @@
+# ponytail: score ratchet — baseline 14 today; raise as warnings get cleaned up
+ci:
+  failBelow: 14
+rules:
+  security/hardcoded-secret: error
+  ai-slop/narrative-comment: error
+  ai-slop/trivial-comment: error

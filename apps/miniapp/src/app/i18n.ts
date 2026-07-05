@@ -1,0 +1,97 @@
+import i18n from 'i18next'
+import { initReactI18next } from 'react-i18next'
+import LanguageDetector from 'i18next-browser-languagedetector'
+
+const resources = {
+  en: {
+    translation: {
+      home: 'Home',
+      catalog: 'Catalog',
+      cart: 'Cart',
+      favorites: 'Favorites',
+      recentlyViewed: 'Recently viewed',
+      profile: 'Profile',
+      support: 'Support',
+      terms: 'Terms',
+      myPurchases: 'My purchases',
+      buyNow: 'Buy now',
+      addToCart: 'Add to cart',
+      checkout: 'Checkout',
+      subscribeSoon: 'Subscription coming soon',
+      ageConfirm: 'This content is 18+. Please confirm your age.',
+      confirm: 'Confirm',
+      reportProblem: 'Report problem',
+      download: 'Download',
+      orderId: 'Order #{{id}}',
+      total: 'Total',
+      discount: 'Discount',
+      toPay: 'To pay',
+      promoCode: 'Promo code',
+      paymentSuccess: 'Payment successful',
+      continueShopping: 'Continue shopping',
+      send: 'Send',
+      topic: 'Topic',
+      message: 'Message',
+      language: 'Language',
+      notifications: 'Notifications',
+      signInToContinue: 'Open this Mini App from Telegram.',
+    },
+  },
+  ru: {
+    translation: {
+      home: 'Главная',
+      catalog: 'Каталог',
+      cart: 'Корзина',
+      favorites: 'Избранное',
+      recentlyViewed: 'Недавно просмотренные',
+      profile: 'Профиль',
+      support: 'Поддержка',
+      terms: 'Условия',
+      myPurchases: 'Мои покупки',
+      buyNow: 'Купить',
+      addToCart: 'В корзину',
+      checkout: 'Оформить заказ',
+      subscribeSoon: 'Подписка скоро',
+      ageConfirm: 'Контент 18+. Подтвердите свой возраст.',
+      confirm: 'Подтвердить',
+      reportProblem: 'Сообщить о проблеме',
+      download: 'Скачать',
+      orderId: 'Заказ #{{id}}',
+      total: 'Итого',
+      discount: 'Скидка',
+      toPay: 'К оплате',
+      promoCode: 'Промокод',
+      paymentSuccess: 'Оплата прошла успешно',
+      continueShopping: 'Продолжить покупки',
+      send: 'Отправить',
+      topic: 'Тема',
+      message: 'Сообщение',
+      language: 'Язык',
+      notifications: 'Уведомления',
+      signInToContinue: 'Откройте Mini App из Telegram.',
+    },
+  },
+  es: { translation: {"home":"Inicio","catalog":"Catálogo","cart":"Carrito","favorites":"Favoritos","recentlyViewed":"Vistos recientemente","profile":"Perfil","support":"Soporte","terms":"Términos","myPurchases":"Mis compras","buyNow":"Comprar ahora","addToCart":"Añadir al carrito","checkout":"Pagar","subscribeSoon":"Suscripción próximamente","ageConfirm":"Este contenido es para mayores de 18. Confirma tu edad.","confirm":"Confirmar","reportProblem":"Reportar problema","download":"Descargar","orderId":"Pedido n.º {{id}}","total":"Total","discount":"Descuento","toPay":"A pagar","promoCode":"Código promocional","paymentSuccess":"Pago realizado con éxito","continueShopping":"Seguir comprando","send":"Enviar","topic":"Tema","message":"Mensaje","language":"Idioma","notifications":"Notificaciones","signInToContinue":"Abre esta Mini App desde Telegram."} },
+  de: { translation: {"home":"Start","catalog":"Katalog","cart":"Warenkorb","favorites":"Favoriten","recentlyViewed":"Zuletzt angesehen","profile":"Profil","support":"Support","terms":"Bedingungen","myPurchases":"Meine Käufe","buyNow":"Jetzt kaufen","addToCart":"In den Warenkorb","checkout":"Zur Kasse","subscribeSoon":"Abo bald verfügbar","ageConfirm":"Dieser Inhalt ist ab 18. Bitte bestätige dein Alter.","confirm":"Bestätigen","reportProblem":"Problem melden","download":"Herunterladen","orderId":"Bestellung #{{id}}","total":"Gesamt","discount":"Rabatt","toPay":"Zu zahlen","promoCode":"Gutscheincode","paymentSuccess":"Zahlung erfolgreich","continueShopping":"Weiter einkaufen","send":"Senden","topic":"Thema","message":"Nachricht","language":"Sprache","notifications":"Benachrichtigungen","signInToContinue":"Öffne diese Mini App über Telegram."} },
+  el: { translation: {"home":"Αρχική","catalog":"Κατάλογος","cart":"Καλάθι","favorites":"Αγαπημένα","recentlyViewed":"Πρόσφατα προβληθέντα","profile":"Προφίλ","support":"Υποστήριξη","terms":"Όροι","myPurchases":"Οι αγορές μου","buyNow":"Αγορά τώρα","addToCart":"Προσθήκη στο καλάθι","checkout":"Ολοκλήρωση αγοράς","subscribeSoon":"Η συνδρομή έρχεται σύντομα","ageConfirm":"Αυτό το περιεχόμενο είναι 18+. Επιβεβαιώστε την ηλικία σας.","confirm":"Επιβεβαίωση","reportProblem":"Αναφορά προβλήματος","download":"Λήψη","orderId":"Παραγγελία #{{id}}","total":"Σύνολο","discount":"Έκπτωση","toPay":"Προς πληρωμή","promoCode":"Κωδικός προσφοράς","paymentSuccess":"Η πληρωμή ολοκληρώθηκε","continueShopping":"Συνέχεια αγορών","send":"Αποστολή","topic":"Θέμα","message":"Μήνυμα","language":"Γλώσσα","notifications":"Ειδοποιήσεις","signInToContinue":"Ανοίξτε αυτό το Mini App από το Telegram."} },
+  tr: { translation: {"home":"Ana sayfa","catalog":"Katalog","cart":"Sepet","favorites":"Favoriler","recentlyViewed":"Son görüntülenenler","profile":"Profil","support":"Destek","terms":"Koşullar","myPurchases":"Satın aldıklarım","buyNow":"Şimdi al","addToCart":"Sepete ekle","checkout":"Ödeme","subscribeSoon":"Abonelik yakında","ageConfirm":"Bu içerik 18+ içindir. Lütfen yaşınızı doğrulayın.","confirm":"Onayla","reportProblem":"Sorun bildir","download":"İndir","orderId":"Sipariş #{{id}}","total":"Toplam","discount":"İndirim","toPay":"Ödenecek","promoCode":"Promosyon kodu","paymentSuccess":"Ödeme başarılı","continueShopping":"Alışverişe devam et","send":"Gönder","topic":"Konu","message":"Mesaj","language":"Dil","notifications":"Bildirimler","signInToContinue":"Bu Mini Uygulamayı Telegram’dan açın."} },
+  bg: { translation: {"home":"Начало","catalog":"Каталог","cart":"Количка","favorites":"Любими","recentlyViewed":"Наскоро гледани","profile":"Профил","support":"Поддръжка","terms":"Условия","myPurchases":"Моите покупки","buyNow":"Купи сега","addToCart":"Добави в количката","checkout":"Плащане","subscribeSoon":"Абонаментът идва скоро","ageConfirm":"Това съдържание е 18+. Моля, потвърдете възрастта си.","confirm":"Потвърди","reportProblem":"Докладвай проблем","download":"Изтегли","orderId":"Поръчка #{{id}}","total":"Общо","discount":"Отстъпка","toPay":"За плащане","promoCode":"Промокод","paymentSuccess":"Плащането е успешно","continueShopping":"Продължи пазаруването","send":"Изпрати","topic":"Тема","message":"Съобщение","language":"Език","notifications":"Известия","signInToContinue":"Отворете това Mini App от Telegram."} },
+  sr: { translation: {"home":"Почетна","catalog":"Каталог","cart":"Корпа","favorites":"Омиљено","recentlyViewed":"Недавно гледано","profile":"Профил","support":"Подршка","terms":"Услови","myPurchases":"Моје куповине","buyNow":"Купи одмах","addToCart":"Додај у корпу","checkout":"Плаћање","subscribeSoon":"Претплата ускоро","ageConfirm":"Овај садржај је 18+. Молимо потврдите године.","confirm":"Потврди","reportProblem":"Пријави проблем","download":"Преузми","orderId":"Поруџбина #{{id}}","total":"Укупно","discount":"Попуст","toPay":"За плаћање","promoCode":"Промо код","paymentSuccess":"Плаћање успешно","continueShopping":"Настави куповину","send":"Пошаљи","topic":"Тема","message":"Порука","language":"Језик","notifications":"Обавештења","signInToContinue":"Отворите овај Mini App из Telegram-а."} },
+  ro: { translation: {"home":"Acasă","catalog":"Catalog","cart":"Coș","favorites":"Favorite","recentlyViewed":"Vizualizate recent","profile":"Profil","support":"Asistență","terms":"Termeni","myPurchases":"Achizițiile mele","buyNow":"Cumpără acum","addToCart":"Adaugă în coș","checkout":"Finalizează comanda","subscribeSoon":"Abonament în curând","ageConfirm":"Acest conținut este 18+. Vă rugăm să vă confirmați vârsta.","confirm":"Confirmă","reportProblem":"Raportează o problemă","download":"Descarcă","orderId":"Comanda #{{id}}","total":"Total","discount":"Reducere","toPay":"De plată","promoCode":"Cod promoțional","paymentSuccess":"Plată reușită","continueShopping":"Continuă cumpărăturile","send":"Trimite","topic":"Subiect","message":"Mesaj","language":"Limbă","notifications":"Notificări","signInToContinue":"Deschideți acest Mini App din Telegram."} },
+  mo: { translation: {"home":"Acasă","catalog":"Catalog","cart":"Coș","favorites":"Favorite","recentlyViewed":"Vizualizate recent","profile":"Profil","support":"Asistență","terms":"Termeni","myPurchases":"Achizițiile mele","buyNow":"Cumpără acum","addToCart":"Adaugă în coș","checkout":"Finalizează comanda","subscribeSoon":"Abonament în curând","ageConfirm":"Acest conținut este 18+. Vă rugăm să vă confirmați vârsta.","confirm":"Confirmă","reportProblem":"Raportează o problemă","download":"Descarcă","orderId":"Comanda #{{id}}","total":"Total","discount":"Reducere","toPay":"De plată","promoCode":"Cod promoțional","paymentSuccess":"Plată reușită","continueShopping":"Continuă cumpărăturile","send":"Trimite","topic":"Subiect","message":"Mesaj","language":"Limbă","notifications":"Notificări","signInToContinue":"Deschideți acest Mini App din Telegram."} },
+}
+
+i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources,
+    fallbackLng: 'en',
+    interpolation: { escapeValue: false },
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
+    },
+  })
+
+export default i18n

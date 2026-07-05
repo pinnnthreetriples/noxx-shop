@@ -1,0 +1,1 @@
+from app.modules.internal_api.router import router  # noqa: F401

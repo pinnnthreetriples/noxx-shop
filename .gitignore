@@ -1,0 +1,23 @@
+# Secrets / local-only
+.env
+.initdata.dev
+backups/
+*.dump
+
+# Dependencies / build output
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+# Tooling state
+.claude/
+.serena/
+.aislop/history.jsonl
+
+# Scratch / session artifacts
+_*.sh
+apps/miniapp/.noxx-backup/

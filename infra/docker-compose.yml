@@ -1,0 +1,148 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-video_shop}
+      POSTGRES_USER: ${POSTGRES_USER:-video_shop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-video_shop} -d ${POSTGRES_DB:-video_shop}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-video_shop}:${POSTGRES_PASSWORD:-change_me}@postgres:5432/${POSTGRES_DB:-video_shop}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      BOT_TOKEN: ${BOT_TOKEN}
+      BOT_USERNAME: ${BOT_USERNAME}
+      TELEGRAM_WEBAPP_URL: ${TELEGRAM_WEBAPP_URL}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL}
+      MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL}
+      ADMIN_PUBLIC_URL: ${ADMIN_PUBLIC_URL}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      INITDATA_MAX_AGE_SECONDS: ${INITDATA_MAX_AGE_SECONDS:-86400}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      MAX_DISCOUNT_PERCENT: ${MAX_DISCOUNT_PERCENT:-50}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-change-me-internal-secret}
+      ADMIN_DEFAULT_EMAIL: ${ADMIN_DEFAULT_EMAIL}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
+      ADMIN_DEFAULT_TELEGRAM_ID: ${ADMIN_DEFAULT_TELEGRAM_ID}
+      ORBCHAIN_API_KEY: ${ORBCHAIN_API_KEY}
+      ORBCHAIN_API_BASE: ${ORBCHAIN_API_BASE:-https://orbchain.io}
+      ORBCHAIN_WEBHOOK_SECRET: ${ORBCHAIN_WEBHOOK_SECRET}
+      STAR_USD_RATE: ${STAR_USD_RATE:-0.02}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media_data:/app/media
+
+  bot:
+    build:
+      context: ../apps/bot
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      BOT_TOKEN: ${BOT_TOKEN}
+      BOT_USERNAME: ${BOT_USERNAME}
+      TELEGRAM_WEBAPP_URL: ${TELEGRAM_WEBAPP_URL}
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:8000}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-change-me-internal-secret}
+      TICKET_POLL_INTERVAL_SEC: ${TICKET_POLL_INTERVAL_SEC:-10}
+      NOTIFICATION_POLL_INTERVAL_SEC: ${NOTIFICATION_POLL_INTERVAL_SEC:-5}
+    depends_on:
+      backend:
+        condition: service_started
+
+  admin:
+    build:
+      context: ../apps/admin
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${BACKEND_PUBLIC_URL}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_BASE_URL: ${BACKEND_PUBLIC_URL}
+      VITE_BOT_USERNAME: ${BOT_USERNAME}
+    depends_on:
+      - backend
+
+  # Production miniapp: static build + nginx (same-origin /api and /media proxies).
+  # Host port 5175 is what the app tunnel points at.
+  miniapp:
+    build:
+      context: ../apps/miniapp
+      dockerfile: Dockerfile
+      args:
+        VITE_TELEGRAM_BOT_USERNAME: ${BOT_USERNAME}
+    restart: unless-stopped
+    ports:
+      - "5175:80"
+    depends_on:
+      - backend
+      - media-server
+
+  media-server:
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile.media
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - media_data:/app/media
+    environment:
+      MEDIA_ROOT: /app/media
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - backend
+      - admin
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:

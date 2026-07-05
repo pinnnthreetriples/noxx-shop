@@ -1,0 +1,15 @@
+# Python backend is linted via ast.parse and unit tests, not npm-based aislop
+apps/backend
+apps/bot
+
+node_modules
+dist
+build
+coverage
+.venv
+__pycache__
+.mypy_cache
+.pytest_cache
+alembic/versions
+apps/miniapp/dist
+apps/admin/dist

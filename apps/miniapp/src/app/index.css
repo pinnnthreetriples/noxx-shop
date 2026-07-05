@@ -1,0 +1,239 @@
+/* NoxX design system — generated foundation.
+   Token layer (CSS variables) + Tailwind + global base. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import './design.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============ DESIGN TOKENS ============ */
+/* NoxX — Color system
+   Dark-first palette. Magenta→pink→peach accents on near-black surfaces,
+   gold for the Stars currency, and a small set of status hues. */
+
+:root {
+  /* ---- Base canvas (near-black, faintly warm/violet) ---- */
+  --noxx-black:      #050307;  /* deepest backdrop */
+  --noxx-surface:    #0a070c;  /* app shell / phone body */
+  --noxx-surface-2:  #0b060b;  /* mid radial stop */
+  --noxx-raise:      #1c0f17;  /* raised popover / menu */
+  --noxx-raise-2:    #2a0f1d;  /* premium card top */
+
+  /* ---- Ink (text on dark) ---- */
+  --ink-900: #ffffff;  /* primary headings */
+  --ink-800: #f2e9ef;  /* star numerals, strong */
+  --ink-700: #e9e2e8;  /* secondary headings / icons */
+  --ink-600: #cfc7cc;  /* feature text */
+  --ink-500: #b3a9b0;  /* body copy */
+  --ink-400: #9a9098;  /* muted labels */
+  --ink-350: #8c828c;  /* meta / captions */
+  --ink-300: #7d747f;  /* empty-state */
+  --ink-200: #6a616b;  /* faint hints, disabled */
+
+  /* ---- Pink / magenta accent ramp ---- */
+  --pink-100: #ffe9f5;  /* star-gradient highlight */
+  --pink-300: #ff8ec2;  /* light accent text on dark */
+  --pink-350: #ff7ab8;  /* check marks, premium tag text */
+  --pink-400: #ff5aa0;  /* gradient mid / radio dot */
+  --pink-500: #ff4d9e;  /* PRIMARY — hearts, nav indicator */
+  --pink-link: #ff539d;  /* inline links ("See all", "Close") */
+  --pink-hot:  #ff2e93;  /* notification dot / badge */
+  --magenta-600: #d63d8f;
+  --magenta-700: #ce3d92;
+  --magenta-800: #b23a86;
+  --magenta-900: #9c2473;
+  --plum-600:   #9d3ba8;  /* secondary button start */
+
+  /* ---- Gold (Telegram Stars) ---- */
+  --gold-500: #f7b23b;  /* star glyph fill */
+  --gold-ink: #f2e9ef;  /* numerals beside a star */
+
+  /* ---- Status ---- */
+  --ok-500:   #46c984;  /* success check */
+  --ok-700:   #2e9d62;
+  --ok-text:  #7ee0c0;  /* "Completed" */
+  --warn-500: #f7b23b;  /* "Pending" (reuses gold) */
+  --danger-500: #ff5a6e; /* "Failed" */
+  --danger-text: #ff7a93;/* "Insufficient balance" */
+  --neutral-status: #9aa0b3; /* "Refunded" */
+
+  /* ---- Translucent surfaces (glass over dark) ---- */
+  --surface-1: rgba(255,255,255,.025); /* faintest card */
+  --surface-2: rgba(255,255,255,.03);  /* default card */
+  --surface-3: rgba(255,255,255,.05);  /* control / chip */
+  --surface-4: rgba(255,255,255,.06);  /* hover / raised */
+  --surface-pink: rgba(255,90,160,.04);/* selected tint */
+
+  /* ---- Hairlines & borders ---- */
+  --hairline:        rgba(255,255,255,.06);
+  --hairline-soft:   rgba(255,255,255,.05);
+  --hairline-strong: rgba(255,255,255,.10);
+  --border-pink:        rgba(255,90,160,.28);
+  --border-pink-soft:   rgba(255,90,160,.18);
+  --border-pink-strong: rgba(255,90,160,.55);
+  --border-pink-bright: rgba(255,120,180,.40);
+
+  /* ---- Gradients ---- */
+  --grad-primary:   linear-gradient(100deg,#d6246e,#ec5690 48%,#f6a98c); /* CTA: Pay / Buy / Checkout */
+  --grad-primary-2: linear-gradient(100deg,#d6246e,#ec5690);             /* CTA, 2-stop (Subscribe) */
+  --grad-secondary: linear-gradient(100deg,#9d3ba8,#c54d8d);             /* Add to cart */
+  --grad-pill:      linear-gradient(135deg,#f060a8,#ce3d92);             /* active tab / chip */
+  --grad-fab:       linear-gradient(140deg,#ff5aa0,#d63d8f);             /* floating cart button */
+  --grad-crown:     radial-gradient(circle at 38% 32%,#ff6ab2,#b23a86);  /* premium crown disc */
+  --grad-ok:        radial-gradient(circle at 40% 35%,#46c984,#2e9d62);  /* success disc */
+  --grad-app-bg:    radial-gradient(120% 75% at 50% 0%,#1d0d18 0%,#0b060b 46%,#050307 100%);
+  --grad-gate-bg:   radial-gradient(120% 70% at 50% 30%,#3a1226 0%,#160910 55%,#0a070c 100%);
+  --grad-star:      linear-gradient(135deg,#ffe9f5,#ff6ab2 55%,#c25fd6); /* large outlined star fill */
+
+  /* ---- Glows (color only; see elevation.css for full shadows) ---- */
+  --glow-pink:    rgba(255,77,158,.30);
+  --glow-pink-lg: rgba(255,90,170,.60);
+  --glow-cta:     rgba(240,70,140,.60);
+}
+
+/* NoxX — Typography
+   One family: Inter. Tight tracking on large headings, normal on body.
+   Weights in use: 400 / 500 / 600 / 700 / 800 / 900. */
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+  --fw-extra:   800;
+  --fw-black:   900;
+
+  /* Type scale (px). Mobile UI — large display numerals, dense meta. */
+  --t-display:  52px;  /* offer "−10%", hero numerals  | 900 | -0/+1.5px */
+  --t-h1:       30px;  /* screen title (Favorites, detail) | 700 | -.6px */
+  --t-h2:       27px;  /* logo "NoxX", section head | 700 | -.4px */
+  --t-h3:       23px;  /* sub-screen title | 600 */
+  --t-h4:       22px;  /* card head / "New videos" | 700 | -.4px */
+  --t-title:    18px;  /* list-item title (large) | 600 */
+  --t-body-lg:  17px;  /* list-item title | 600 */
+  --t-body:     16px;  /* body copy | 400 | 1.55 line */
+  --t-body-sm:  15px;  /* feature rows, prices | 500/600 */
+  --t-label:    14px;  /* links, tags | 500/600 */
+  --t-meta:     13px;  /* taglines, captions | 400 */
+  --t-meta-sm:  12.5px;/* stat counts | 500 */
+  --t-micro:    11px;  /* thumb badges, nav labels | 500/600 */
+
+  /* Tracking */
+  --track-tight:  -.6px;  /* big headings */
+  --track-snug:   -.4px;
+  --track-xsnug:  -.2px;  /* list titles */
+  --track-caps:    .5px;  /* uppercase section labels (e.g. "JUNE 2026") */
+
+  /* Line height */
+  --lh-tight: 1.0;   /* display numerals */
+  --lh-snug:  1.4;
+  --lh-body:  1.55;  /* descriptions */
+}
+
+/* NoxX — Spacing & layout
+   Screen gutter is 22px. Cards pad 13–22px. Controls sit on a loose 4px rhythm. */
+
+:root {
+  --sp-1:  2px;
+  --sp-2:  4px;
+  --sp-3:  6px;
+  --sp-4:  8px;
+  --sp-5:  10px;
+  --sp-6:  12px;
+  --sp-7:  14px;
+  --sp-8:  16px;
+  --sp-9:  18px;
+  --sp-10: 20px;
+  --sp-11: 22px;   /* screen gutter (left/right padding) */
+  --sp-12: 24px;
+  --sp-14: 30px;
+  --sp-16: 42px;
+  --sp-18: 52px;   /* top inset under status bar on a main screen */
+
+  /* Semantic */
+  --gutter:        22px;  /* horizontal screen padding */
+  --card-pad:      18px;  /* default card inner padding */
+  --card-pad-lg:   22px;  /* large promo / summary card */
+  --row-gap:       12px;  /* gap between list rows */
+  --stack-gap:     14px;  /* gap inside a content stack */
+  --nav-pad-bottom:26px;  /* safe-area bottom on the tab bar */
+
+  /* Device frame */
+  --frame-w: 402px;
+  --frame-h: 862px;
+
+  /* Touch target floor */
+  --hit-min: 44px;
+}
+
+/* NoxX — Radius
+   Soft everywhere. Pills are fully round; the phone frame is a 46px superellipse-ish curve. */
+
+:root {
+  --r-xs:   7px;   /* thumb time/badge chip */
+  --r-sm:   11px;  /* small inner control */
+  --r-md:   13px;  /* thumbnail, icon tile */
+  --r-lg:   16px;  /* button, control group, default card */
+  --r-xl:   18px;  /* list-row card */
+  --r-2xl:  22px;  /* large card / summary / promo */
+  --r-3xl:  46px;  /* phone frame */
+  --r-pill: 999px; /* chips, tags, status pills */
+  --r-full: 50%;   /* avatars, FAB, icon buttons */
+}
+
+/* NoxX — Elevation
+   Two shadow languages: (1) soft black depth for the device & menus,
+   (2) colored "glow" bloom under accent CTAs and luminous discs. */
+
+:root {
+  /* Black depth */
+  --shadow-frame:  0 55px 130px -25px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.05);
+  --shadow-menu:   0 20px 44px -14px rgba(0,0,0,.75);
+  --shadow-pop:    0 20px 40px -16px rgba(0,0,0,.7);
+
+  /* Accent glow (pink CTA bloom) */
+  --shadow-cta:       0 14px 34px -10px rgba(240,70,140,.60);
+  --shadow-cta-tall:  0 16px 38px -10px rgba(240,70,140,.65);
+  --shadow-secondary: 0 12px 30px -14px rgba(190,70,165,.55);
+  --shadow-fab:       0 12px 32px -6px rgba(255,77,158,.70), 0 0 0 1px rgba(255,255,255,.12);
+  --shadow-pill:      0 6px 16px -6px rgba(240,70,160,.70);
+  --shadow-badge:     0 4px 12px -4px rgba(214,61,143,.70);
+
+  /* Luminous discs / rings */
+  --glow-disc:   0 0 34px rgba(255,90,170,.60);          /* crown disc */
+  --glow-ring:   0 0 0 6px rgba(255,77,158,.10), 0 0 44px rgba(255,77,158,.50); /* play button */
+  --glow-ok:     0 0 46px rgba(80,200,130,.50);          /* success disc */
+  --glow-avatar: 0 0 60px rgba(255,60,150,.50);          /* profile ring */
+}
+
+/* The pulsing pink ring used on the floating cart button. */
+@keyframes noxx-ring-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,77,158,.4); }
+  70%  { box-shadow: 0 0 0 18px rgba(255,77,158,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,77,158,0); }
+}
+/* Pop-in used by the success check and cart badge. */
+@keyframes noxx-pop-in {
+  0%   { transform: scale(.4); }
+  55%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* ============ GLOBAL BASE ============ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { margin: 0; padding: 0; height: 100%; }
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
+body {
+  margin: 0;
+  background: #16121a;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  color: var(--ink-200, #efe9f1);
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }

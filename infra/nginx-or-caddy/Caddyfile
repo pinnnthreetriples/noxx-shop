@@ -1,0 +1,17 @@
+{
+    auto_https off
+}
+
+:80 {
+    handle_path /media/* {
+        reverse_proxy media-server:9000
+    }
+
+    handle_path /admin/* {
+        reverse_proxy directus:8055
+    }
+
+    handle {
+        reverse_proxy backend:8000
+    }
+}

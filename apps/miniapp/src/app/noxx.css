@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,700;1,900&display=swap');
+
+html, body, #root { margin: 0; height: 100%; }
+body {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 0; background: radial-gradient(120% 75% at 50% 0%, #1d0d18 0%, #0b060b 46%, #050307 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: #fff;
+}
+.noxx-frame {
+  position: relative; width: 402px; height: 862px; max-height: 100vh; max-width: 100vw;
+  border-radius: 46px; overflow: hidden; background: #0a070c;
+  box-shadow: 0 40px 120px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
+}
+@media (max-width: 430px), (max-height: 880px) { .noxx-frame { border-radius: 0; max-height: 100vh; height: 100vh; width: 100vw; } body { padding: 0; } }
+
+  *{box-sizing:border-box;scrollbar-width:none;-webkit-tap-highlight-color:transparent}
+  *::-webkit-scrollbar{width:0;height:0;display:none}
+  html,body{margin:0;padding:0;background:#050307}
+  button,input,textarea,select{font-family:inherit;font-style:inherit}
+  @keyframes popIn{0%{transform:scale(.4)}55%{transform:scale(1.08)}100%{transform:scale(1)}}
+  @keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(255,77,158,.4)}70%{box-shadow:0 0 0 18px rgba(255,77,158,0)}100%{box-shadow:0 0 0 0 rgba(255,77,158,0)}}
+  @keyframes spinDash{to{transform:rotate(360deg)}}
+  @keyframes noxxScreenIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes noxxItemIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes ctaNudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
+  @keyframes ctaArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
+  [data-cta-nudge]{animation:ctaNudge 1.5s ease-in-out infinite;will-change:transform}
+  [data-cta-arrow]{animation:ctaArrow 1.5s ease-in-out infinite}
+  [data-success-check]{animation:popIn .8s cubic-bezier(.2,.9,.3,1.3) both}
+  [data-gate-ring]{animation:spinDash 14s linear infinite}
+  @keyframes cardSheen{0%{transform:translateX(-160%) skewX(-20deg)}55%,100%{transform:translateX(280%) skewX(-20deg)}}
+  [data-shine]::before{content:"";position:absolute;top:0;bottom:0;left:0;width:42%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.09),transparent);pointer-events:none;z-index:3;animation:cardSheen 6.5s ease-in-out 1.2s infinite}
+  [data-shine]:nth-of-type(2)::before{animation-delay:2.3s}
+  [data-shine]:nth-of-type(3)::before{animation-delay:3.4s}
+  @keyframes radioDotPop{0%{transform:scale(0)}55%{transform:scale(1.3)}100%{transform:scale(1)}}
+  [data-radio-dot]{animation:radioDotPop .42s cubic-bezier(.2,.8,.2,1) both;transform-origin:center}
+
