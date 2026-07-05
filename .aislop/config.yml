@@ -1,6 +1,9 @@
-# ponytail: score ratchet — CI baseline 80 today; raise as warnings get cleaned up
+# Strict ratchet: 86 is the current clean score (9 structural/false-positive
+# warnings remain: useNoxx hub length, vendored component params, react-admin
+# dataProvider pattern, t.me URL-format checks). Any new slop drops the score
+# below 86 and fails CI. Raise this number if the tail ever gets cleaned up.
 ci:
-  failBelow: 75
+  failBelow: 86
 rules:
   security/hardcoded-secret: error
   ai-slop/narrative-comment: error

@@ -48,6 +48,7 @@ jobs:
           cache: npm
           cache-dependency-path: apps/miniapp/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm run build
 
   admin:
@@ -64,7 +65,15 @@ jobs:
           cache: npm
           cache-dependency-path: apps/admin/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm run build
+
+  actionlint:
+    name: actionlint (workflow lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: raven-actions/actionlint@v2
 
   gitleaks:
     name: gitleaks (secret scan)
