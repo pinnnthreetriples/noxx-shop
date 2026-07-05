@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -38,9 +38,7 @@ class Settings(BaseSettings):
     # 1 in-app "star" of price ≈ this many USD when invoicing crypto
     star_usd_rate: float = 0.02
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()
