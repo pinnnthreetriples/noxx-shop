@@ -338,7 +338,7 @@ export function useIndicator(
     try {
       const fonts = (document as { fonts?: { ready?: Promise<unknown> } }).fonts
       fonts?.ready?.then(() => place(false))
-    } catch {}
+    } catch { /* document.fonts unsupported */ }
     return () => ro?.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

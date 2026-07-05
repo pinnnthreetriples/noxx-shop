@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from aiogram import types
 from ..config import TICKET_POLL_INTERVAL_SEC
 from ..http_client import api_client
 from ..bot_instance import bot
@@ -47,7 +46,7 @@ async def periodic_ticket_checker():
                 try:
                     await api_client.mark_ticket_notified(ticket_id)
                 except Exception:
-                    pass
+                    logger.debug("mark_ticket_notified failed", exc_info=True)
                 after_id = max(after_id, ticket_id)
         except Exception as e:
             logger.exception("ticket checker fatal: %s", e)

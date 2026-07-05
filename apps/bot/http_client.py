@@ -1,6 +1,6 @@
 import httpx
 import logging
-from typing import Any, List
+from typing import List
 
 from .config import INTERNAL_API_URL, INTERNAL_API_SECRET
 

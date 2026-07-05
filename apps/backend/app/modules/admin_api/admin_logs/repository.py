@@ -1,6 +1,6 @@
 """AdminLog repository - SQL operations only."""
 from typing import List, Optional, Tuple
-from sqlalchemy import select, func, desc, asc
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.admin.models import AdminLog
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total

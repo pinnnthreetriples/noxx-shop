@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, update
+from sqlalchemy import select, func, desc
 from app.modules.admin.models import Admin, AdminLog, LinkDeliveryLog, GoogleDriveToken, BotMessageMap, AdminRole
 
 

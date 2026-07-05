@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func, or_, and_, update
-from app.modules.catalog.models import Product, Category, Tag, ProductTag, ProductTranslation, CategoryTranslation, TagTranslation
+from app.modules.catalog.models import Product, Category, Tag, ProductTag, ProductTranslation
 from app.modules.favorites.models import RecentlyViewed
 from app.modules.catalog.models import ProductStatus
 

@@ -1,9 +1,9 @@
 """Notification repository - SQL operations only."""
 from typing import List, Optional, Tuple
-from sqlalchemy import select, func, desc, asc, or_, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.notifications.models import Notification
-from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, search_ilike
+from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total
 
 
 class NotificationAdminRepository:

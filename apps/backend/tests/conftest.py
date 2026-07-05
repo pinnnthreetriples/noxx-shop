@@ -26,7 +26,7 @@ async def override_get_db():
         yield session
 
 
-from app.core.database import get_db
+from app.core.database import get_db  # noqa: E402 - needs sys.path set up above
 
 app.dependency_overrides[get_db] = override_get_db
 

@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     media_public_url: str = ""
     admin_public_url: str = ""
 
-    jwt_secret: str = "change-me"
-    admin_jwt_secret: str = "admin-change-me"
+    jwt_secret: str = "change-me"  # noqa: S105 - placeholder, overridden by .env
+    admin_jwt_secret: str = "admin-change-me"  # noqa: S105 - placeholder, overridden by .env
     initdata_max_age_seconds: int = 86400
     admin_default_email: str = ""
     admin_default_password: str = ""
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     max_discount_percent: int = 50
     default_language: str = "en"
     internal_api_url: str = "http://backend:8000"
-    internal_api_secret: str = "change-me-internal-secret"
+    internal_api_secret: str = "change-me-internal-secret"  # noqa: S105 - placeholder, overridden by .env
 
     # OrbChain crypto payment gateway
     orbchain_api_key: str = ""

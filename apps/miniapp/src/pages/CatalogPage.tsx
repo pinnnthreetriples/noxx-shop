@@ -5,7 +5,7 @@ import * as Motion from '@/shared/noxx/motion'
 export default function CatalogPage() {
   const { showCatalog, glowOn, goHome, catFilters, catalogVideos, goCart, hasCart, cartCount, productsLoading, productsError, retryProducts, catalogEmpty, payCrypto } = NoxxVM.useNoxx()
   const catWrapRef = React.useRef<HTMLDivElement>(null)
-  const catActive = (catFilters || []).findIndex((p: any) => p.active)
+  const catActive = (catFilters || []).findIndex((p) => p.active)
   Motion.useIndicator(catWrapRef, '[data-cat-ind]', '[data-cat-item][data-active]', catActive, { vertical: true, ease: Motion.E.back16, duration: 500 })
   return (
     <>
@@ -19,14 +19,14 @@ export default function CatalogPage() {
       </div>
       <div data-cat-wrap="" ref={catWrapRef} style={{"position": "relative", "flex": "none", "display": "flex", "gap": "10px", "padding": "12px 22px 6px", "overflowX": "auto", "WebkitMaskImage": "linear-gradient(to right,#000 calc(100% - 24px),transparent)", "maskImage": "linear-gradient(to right,#000 calc(100% - 24px),transparent)"}}>
         <div data-cat-ind="" style={{"position": "absolute", "left": "0", "top": "0", "width": "0", "height": "0", "borderRadius": "21px", "background": "linear-gradient(135deg,#f060a8,#ce3d92)", "pointerEvents": "none", "zIndex": "0"}} />
-        {(catFilters||[]).map((p: any, _k0: number) => (<React.Fragment key={_k0}><div data-cat-item="" data-active={p.active ? '' : undefined} onClick={p.onClick} style={p.style}>{p.label}</div></React.Fragment>))}
+        {(catFilters||[]).map((p, _k0: number) => (<React.Fragment key={_k0}><div data-cat-item="" data-active={p.active ? '' : undefined} onClick={p.onClick} style={p.style}>{p.label}</div></React.Fragment>))}
         <div style={{"flex": "none", "width": "26px"}} />
       </div>
       <div style={{"flex": "1", "overflowY": "auto", "padding": "10px 22px 184px"}}>
         {(productsLoading) && (<><div ref={Motion.loadingPulseRef} style={{"padding": "40px 0", "textAlign": "center", "color": "#8c828c", "fontSize": "14px"}}>Loading…</div></>)}
         {(productsError) && (<><div style={{"padding": "40px 0", "textAlign": "center"}}><div style={{"color": "#8c828c", "fontSize": "14px", "marginBottom": "12px"}}>Couldn't load videos</div><div onClick={retryProducts} style={{"display": "inline-flex", "padding": "9px 18px", "borderRadius": "999px", "background": "rgba(255,255,255,.06)", "border": "1px solid rgba(255,120,180,.35)", "color": "#ff8ec2", "fontSize": "14px", "fontWeight": "600", "cursor": "pointer"}}>Retry</div></div></>)}
         {(catalogEmpty) && (<><div style={{"padding": "40px 0", "textAlign": "center", "color": "#8c828c", "fontSize": "14px"}}>No videos yet</div></>)}
-        {(catalogVideos||[]).map((v: any, _k1: number) => (<React.Fragment key={_k1}>
+        {(catalogVideos||[]).map((v, _k1: number) => (<React.Fragment key={_k1}>
           <div onClick={v.onOpen} style={{"position": "relative", "display": "flex", "gap": "13px", "alignItems": "stretch", "padding": "11px", "borderRadius": "18px", "cursor": "pointer", "marginBottom": "12px", "background": "rgba(255,255,255,.025)", "border": "1px solid rgba(255,255,255,.06)", "overflow": "hidden", "transition": "background .2s ease,border-color .2s ease"}}>
             {(v.premium) && (<><div style={{"position": "absolute", "inset": "0", "background": "linear-gradient(120deg,rgba(150,45,105,.18),transparent 58%)", "pointerEvents": "none"}} /></>)}
             <div style={{"position": "relative", "width": "118px", "height": "104px", "borderRadius": "14px", "overflow": "hidden", "flex": "none"}}>

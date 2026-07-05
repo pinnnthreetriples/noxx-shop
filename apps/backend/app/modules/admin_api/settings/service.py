@@ -1,5 +1,5 @@
 """Settings admin service - use-case logic."""
-from typing import Optional, Dict, Any
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.admin.models import AdminLog, Setting
 from app.modules.admin_api.settings.repository import SettingsAdminRepository

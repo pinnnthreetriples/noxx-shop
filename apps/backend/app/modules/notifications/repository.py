@@ -1,9 +1,8 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, update
+from sqlalchemy import select, func, desc
 from app.modules.notifications.models import Notification, NotificationRecipient
-import json
 
 
 class NotificationRepository:

@@ -14,7 +14,7 @@ export default function CartPage() {
       </div>
       <div style={{"flex": "1", "overflowY": "auto", "padding": "6px 22px 18px"}}>
         {(cartEmpty) && (<><div style={{"textAlign": "center", "color": "#7d747f", "padding": "80px 20px", "fontSize": "16px"}}>Your cart is empty.</div></>)}
-        {(cartItems||[]).map((v: any, _k0: number) => (<React.Fragment key={_k0}>
+        {(cartItems||[]).map((v, _k0: number) => (<React.Fragment key={_k0}>
           <div style={{"display": "flex", "gap": "16px", "padding": "16px", "borderRadius": "22px", "background": "rgba(255,255,255,.03)", "border": "1px solid rgba(255,255,255,.06)", "marginBottom": "16px"}}>
             <div style={{"position": "relative", "width": "106px", "height": "106px", "borderRadius": "18px", "overflow": "hidden", "flex": "none"}}>
               <div style={v.bg} />

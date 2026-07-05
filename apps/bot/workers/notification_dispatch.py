@@ -53,7 +53,7 @@ async def notification_dispatcher():
                             error=str(e),
                         )
                     except Exception:
-                        pass
+                        logger.debug("failed to report delivery status", exc_info=True)
         except Exception as e:
             logger.exception("notification dispatcher fatal: %s", e)
             await asyncio.sleep(10)

@@ -99,7 +99,7 @@ function App() {
 
   React.useEffect(() => Motion.bindPress(), [])
 
-  React.useEffect(() => { startDomTranslator(language) }, [])
+  React.useEffect(() => { startDomTranslator(language) }, [language])
 
   if (!langChosen) {
     return (

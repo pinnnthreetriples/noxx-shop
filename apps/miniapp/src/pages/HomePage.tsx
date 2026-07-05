@@ -35,7 +35,7 @@ export default function HomePage() {
         {(productsLoading) && (<><div ref={Motion.loadingPulseRef} style={{"padding": "28px 0", "textAlign": "center", "color": "#8c828c", "fontSize": "14px"}}>Loading…</div></>)}
         {(productsError) && (<><div style={{"padding": "28px 0", "textAlign": "center"}}><div style={{"color": "#8c828c", "fontSize": "14px", "marginBottom": "12px"}}>Couldn't load videos</div><div onClick={retryProducts} style={{"display": "inline-flex", "padding": "9px 18px", "borderRadius": "999px", "background": "rgba(255,255,255,.06)", "border": "1px solid rgba(255,120,180,.35)", "color": "#ff8ec2", "fontSize": "14px", "fontWeight": "600", "cursor": "pointer"}}>Retry</div></div></>)}
         {(homeEmpty) && (<><div style={{"padding": "28px 0", "textAlign": "center", "color": "#8c828c", "fontSize": "14px"}}>No videos yet</div></>)}
-        {(homeVideos||[]).map((v: any, _k0: number) => (<React.Fragment key={_k0}>
+        {(homeVideos||[]).map((v, _k0: number) => (<React.Fragment key={_k0}>
           <div onClick={v.onOpen} style={{"display": "flex", "gap": "14px", "alignItems": "center", "padding": "12px", "borderRadius": "18px", "cursor": "pointer", "marginBottom": "12px", "background": "rgba(255,255,255,.025)", "border": "1px solid rgba(255,255,255,.1)"}}>
             <div style={{"position": "relative", "width": "118px", "height": "84px", "borderRadius": "14px", "overflow": "hidden", "flex": "none"}}>
               <div style={v.bg} />

@@ -1,4 +1,3 @@
-// @ts-nocheck — vendored NoxX design-system component (inline styles)
 import * as React from 'react'
 import starsIconUrl from '@/assets/stars-icon.png'
 
@@ -44,7 +43,7 @@ export function Button({
   const pad = size === 'lg' ? '0' : '18px';
   const height = size === 'lg' ? 66 : undefined;
 
-  const base = {
+  const base: React.CSSProperties = {
     position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
@@ -65,7 +64,7 @@ export function Button({
     transition: 'filter .2s ease',
   };
 
-  const variants = {
+  const variants: Record<string, React.CSSProperties> = {
     primary:   { background: 'var(--grad-primary)',   boxShadow: size === 'lg' ? 'var(--shadow-cta-tall)' : 'var(--shadow-cta)' },
     secondary: { background: 'var(--grad-secondary)',  boxShadow: 'var(--shadow-secondary)' },
     outline:   { background: 'var(--surface-2)', color: 'var(--pink-link)', border: '1px solid var(--hairline-strong)', boxShadow: 'none' },

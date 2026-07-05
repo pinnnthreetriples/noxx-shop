@@ -1,4 +1,3 @@
-// @ts-nocheck — vendored NoxX design-system component (inline styles)
 import * as React from 'react'
 
 export interface StarPriceProps {
@@ -15,7 +14,7 @@ export interface StarPriceProps {
   style?: React.CSSProperties;
 }
 
-const STAR = (px) => (
+const STAR = (px: number) => (
   <svg width={px} height={px} viewBox="0 0 24 24" fill="var(--gold-500)" style={{ flex: 'none' }}>
     <path d="M12 2l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.98 6.1 20.16l1.13-6.57L2.45 8.94l6.6-.96z" />
   </svg>

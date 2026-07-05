@@ -38,7 +38,7 @@ export default function SupportPage() {
         <div style={{"fontSize": "19px", "color": "#e9e2e8", "marginBottom": "22px"}}>How can we help you?</div>
 
         <div onClick={() => setFaqOpen((o) => !o)} style={rowStyle}><div style={iconStyle}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff8ec2" strokeWidth="1.7"><circle cx="12" cy="12" r="9" /><path d="M9.2 9.2a2.8 2.8 0 0 1 5.5.8c0 1.9-2.7 2.2-2.7 4" /><circle cx="12" cy="17" r="0.6" fill="#ff8ec2" /></svg></div><span style={{"flex": "1", "fontSize": "16px", "fontWeight": "500", "color": "#fff"}}>Frequently asked questions</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6a616b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{"transform": faqOpen ? 'rotate(90deg)' : 'none', "transition": "transform .25s"}}><path d="M9 6l6 6-6 6" /></svg></div>
-        {faqOpen && (supportTopics || []).map((t: any, k: number) => (
+        {faqOpen && (supportTopics || []).map((t, k: number) => (
           <div key={k} style={{"padding": "0 6px 18px"}}><div style={{"fontSize": "14.5px", "fontWeight": "600", "color": "#fff", "marginBottom": "5px"}}>{t.head}</div><div style={{"fontSize": "13.5px", "lineHeight": "1.55", "color": "#9a9098"}}>{t.body}</div></div>
         ))}
 

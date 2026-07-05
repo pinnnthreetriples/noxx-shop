@@ -1,5 +1,4 @@
 from typing import List, Optional, Tuple
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, update, desc, asc
 from sqlalchemy.orm import selectinload

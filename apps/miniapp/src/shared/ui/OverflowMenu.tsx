@@ -1,4 +1,3 @@
-// @ts-nocheck — vendored NoxX design-system component (inline styles)
 import * as React from 'react'
 
 export interface OverflowMenuItem {
@@ -39,8 +38,8 @@ export const TrashIcon = (
  */
 export function OverflowMenu({ items = [], align = 'up', defaultOpen = false, style = {} }: OverflowMenuProps) {
   const [open, setOpen] = React.useState(defaultOpen);
-  const wrapRef = React.useRef(null);
-  const popRef = React.useRef(null);
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const popRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!open) return;
@@ -52,7 +51,7 @@ export function OverflowMenu({ items = [], align = 'up', defaultOpen = false, st
         { duration: 190, easing: 'cubic-bezier(.2,.7,.3,1)' }
       );
     }
-    const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e: PointerEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('pointerdown', onDoc);
     return () => document.removeEventListener('pointerdown', onDoc);
   }, [open, align]);

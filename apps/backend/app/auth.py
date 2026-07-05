@@ -114,7 +114,7 @@ async def get_current_admin(
         if not admin_id:
             raise HTTPException(status_code=401, detail="Invalid token")
     except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token") from None
     result = await db.execute(select(Admin).where(Admin.id == int(admin_id), Admin.active.is_(True)))
     admin = result.scalars().first()
     if not admin:

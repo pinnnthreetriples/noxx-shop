@@ -3,12 +3,11 @@
 The Google Drive OAuth integration lives in services. This router exposes only
 the minimal endpoints needed for the admin panel to verify the connection.
 """
-from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
-from app.modules.admin.models import Admin, GoogleDriveToken
+from app.modules.admin.models import GoogleDriveToken
 
 router = APIRouter()
 

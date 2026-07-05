@@ -54,7 +54,6 @@ class PromoCodeRepository:
         first_purchase_only: bool = False,
         min_cart_total: Optional[int] = None,
     ) -> PromoCode:
-        from datetime import datetime
         promo = PromoCode(
             code=code,
             discount_type=discount_type,

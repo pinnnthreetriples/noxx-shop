@@ -1,6 +1,6 @@
 """Tag repository - SQL operations only."""
 from typing import List, Optional, Tuple
-from sqlalchemy import select, func, desc, asc, or_, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.catalog.models import Tag, TagTranslation
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, search_ilike, apply_updates

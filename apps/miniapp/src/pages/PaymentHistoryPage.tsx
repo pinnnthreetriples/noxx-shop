@@ -19,9 +19,9 @@ export default function PaymentHistoryPage() {
         </div>
         {(paymentsLoading) && (<><div style={{"padding": "30px 0", "textAlign": "center", "color": "#8c828c", "fontSize": "14px"}}>Loading…</div></>)}
         {(paymentsEmpty) && (<><div style={{"padding": "30px 0", "textAlign": "center", "color": "#8c828c", "fontSize": "14px"}}>No payments yet</div></>)}
-        {(payHistory||[]).map((g: any, _k0: number) => (<React.Fragment key={_k0}>
+        {(payHistory||[]).map((g, _k0: number) => (<React.Fragment key={_k0}>
         <div style={{"fontSize": "12.5px", "fontWeight": "600", "color": "#8c828c", "letterSpacing": ".5px", "margin": (_k0 === 0 ? "4px 2px 8px" : "20px 2px 8px")}}>{g.label}</div>
-        {(g.items||[]).map((p: any, _k1: number) => (<React.Fragment key={_k1}>
+        {(g.items||[]).map((p, _k1: number) => (<React.Fragment key={_k1}>
         <div style={{"display": "flex", "alignItems": "center", "gap": "14px", "padding": "14px 0", "borderBottom": "1px solid rgba(255,255,255,.05)"}}>
           <div style={{"width": "42px", "height": "42px", "borderRadius": "12px", "background": "rgba(255,90,160,.1)", "border": "1px solid rgba(255,90,160,.22)", "display": "flex", "alignItems": "center", "justifyContent": "center", "flex": "none"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8ec2" strokeWidth="1.7" strokeLinejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5" /><path d="M2.5 9.5h19" /></svg></div>
           <div style={{"flex": "1", "minWidth": "0"}}><div style={{"fontSize": "16px", "fontWeight": "600", "color": "#fff", "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"}}>{p.title}</div><div style={{"fontSize": "13px", "color": "#8c828c", "marginTop": "2px"}}>{p.date} · <span style={{"color": p.statusColor}}>{p.statusLabel}</span></div></div>

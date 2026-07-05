@@ -45,7 +45,7 @@ async def orbchain_webhook(request: Request, db: AsyncSession = Depends(get_db))
     try:
         event = json.loads(raw)
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
+        raise HTTPException(status_code=400, detail="Invalid JSON") from None
 
     etype = event.get("type")
     status = (event.get("status") or "").lower()

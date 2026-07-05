@@ -1,4 +1,3 @@
-// @ts-nocheck — vendored NoxX design-system component (inline styles)
 import * as React from 'react'
 
 export interface BadgeProps {

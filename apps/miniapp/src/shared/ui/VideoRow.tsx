@@ -1,4 +1,3 @@
-// @ts-nocheck — vendored NoxX design-system component (inline styles)
 import * as React from 'react'
 
 export interface VideoRowProps {
@@ -22,7 +21,7 @@ export interface VideoRowProps {
 import { StarPrice } from './StarPrice';
 import { Badge } from './Badge';
 
-const Stat = ({ icon, children }) => (
+const Stat = ({ icon, children }: { icon?: React.ReactNode; children?: React.ReactNode }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--ink-400)', fontSize: 12.5 }}>
     {icon}{children}
   </span>

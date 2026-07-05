@@ -5,7 +5,7 @@ import * as Motion from '@/shared/noxx/motion'
 export default function PurchasesPage() {
   const { showPurchases, glowOn, goHome, pTabs, purchaseItems, purchasesEmpty, promoVisible, explore, dismissPromo } = NoxxVM.useNoxx()
   const ptabWrapRef = React.useRef<HTMLDivElement>(null)
-  const ptabActive = (pTabs || []).findIndex((t: any) => t.active)
+  const ptabActive = (pTabs || []).findIndex((t) => t.active)
   Motion.useIndicator(ptabWrapRef, '[data-ptab-ind]', '[data-ptab-item][data-active]', ptabActive, { ease: Motion.E.back16, duration: 500 })
   return (
     <>
@@ -19,11 +19,11 @@ export default function PurchasesPage() {
       </div>
       <div data-ptab-wrap="" ref={ptabWrapRef} style={{"position": "relative", "flex": "none", "display": "flex", "gap": "6px", "margin": "8px 22px 6px", "padding": "5px", "borderRadius": "16px", "background": "rgba(255,255,255,.05)"}}>
         <div data-ptab-ind="" style={{"position": "absolute", "top": "5px", "bottom": "5px", "left": "0", "width": "0", "borderRadius": "12px", "background": "linear-gradient(135deg,#f060a8,#ce3d92)", "boxShadow": "0 6px 16px -6px rgba(240,70,160,.7)", "pointerEvents": "none", "zIndex": "0"}} />
-        {(pTabs||[]).map((t: any, _k0: number) => (<React.Fragment key={_k0}><div data-ptab-item="" data-active={t.active ? '' : undefined} onClick={t.onClick} style={t.style}>{t.label}</div></React.Fragment>))}
+        {(pTabs||[]).map((t, _k0: number) => (<React.Fragment key={_k0}><div data-ptab-item="" data-active={t.active ? '' : undefined} onClick={t.onClick} style={t.style}>{t.label}</div></React.Fragment>))}
       </div>
       <div style={{"flex": "1", "overflowY": "auto", "padding": "12px 22px 100px"}}>
         {(purchasesEmpty) && (<><div style={{"padding": "34px 0", "textAlign": "center", "color": "#8c828c", "fontSize": "14px"}}>No videos yet</div></>)}
-        {(purchaseItems||[]).map((v: any, _k1: number) => (<React.Fragment key={_k1}>
+        {(purchaseItems||[]).map((v, _k1: number) => (<React.Fragment key={_k1}>
           <div style={{"display": "flex", "alignItems": "center", "gap": "15px", "padding": "13px", "borderRadius": "18px", "background": "rgba(255,255,255,.03)", "border": "1px solid rgba(255,255,255,.06)", "marginBottom": "14px"}}>
             <div onClick={v.onOpen} style={{"position": "relative", "width": "108px", "height": "74px", "borderRadius": "13px", "overflow": "hidden", "flex": "none", "cursor": "pointer"}}>
               <div style={v.bg} />

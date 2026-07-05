@@ -1,4 +1,3 @@
-from typing import Optional
 from dataclasses import dataclass
 from app.modules.admin_api.filters import Page
 

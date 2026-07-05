@@ -2,7 +2,7 @@
 Thin orders router: request → service → response.
 No SQL, no business logic, no direct external HTTP calls.
 """
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,7 +47,7 @@ async def checkout_create(
             user, body.product_ids, body.promo_code, body.provider
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/subscription/checkout", response_model=CheckoutOut)
@@ -59,7 +59,7 @@ async def subscription_checkout(
     try:
         return await OrderService(db).create_subscription_checkout(user, body.plan, body.provider)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/subscription/claim")
@@ -72,7 +72,7 @@ async def subscription_claim(
     try:
         return await OrderService(db).claim_with_premium(user, body.product_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/orders", response_model=List[OrderOut])
@@ -121,7 +121,7 @@ async def select_coin(
     try:
         return await OrderService(db).select_orbchain_coin(user, order_id, body.coin)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/orders/{order_id}/check-payment")
@@ -142,4 +142,4 @@ async def webhook_payment(body: dict, db: AsyncSession = Depends(get_db)):
             body.get("provider_payment_charge_id"),
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

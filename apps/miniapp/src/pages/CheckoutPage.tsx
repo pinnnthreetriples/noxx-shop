@@ -4,7 +4,7 @@ import * as NoxxVM from '@/shared/noxx/useNoxx'
 export default function CheckoutPage() {
   const { showCheckout, glowOn, checkoutBack, coItems, coTotalFmt, coTotalUsd, coInsufficient, doPay, payCrypto, payMethods, paySecureNote, coDiscountRows, coHasDiscount, coSubtotalFmt, coSubtotalUsd, promoValue, promoOnChange, promoApply, promoAppliedCode, promoInvalid, promoRemove, promoBusy } = NoxxVM.useNoxx()
   const [payOpen, setPayOpen] = React.useState(false)
-  const paySelected = (payMethods || []).find((m: any) => m.selected)
+  const paySelected = (payMethods || []).find((m) => m.selected)
   return (
     <>
 {(showCheckout) && (<>
@@ -18,7 +18,7 @@ export default function CheckoutPage() {
       <div style={{"flex": "1", "overflowY": "auto", "padding": "6px 22px 18px", "position": "relative", "zIndex": "1"}}>
         <div style={{"borderRadius": "22px", "border": "1px solid rgba(255,90,160,.18)", "background": "rgba(255,255,255,.03)", "padding": "22px 20px", "boxShadow": "0 -1px 30px -10px rgba(255,80,150,.4)"}}>
           <div style={{"fontSize": "20px", "fontWeight": "600", "color": "#fff", "marginBottom": "8px"}}>Order summary</div>
-          {(coItems||[]).map((v: any, _k0: number) => (<React.Fragment key={_k0}>
+          {(coItems||[]).map((v, _k0: number) => (<React.Fragment key={_k0}>
             <div style={{"display": "flex", "alignItems": "center", "gap": "14px", "padding": "16px 0", "borderBottom": "1px solid rgba(255,255,255,.06)"}}>
               <div style={{"width": "56px", "height": "56px", "borderRadius": "13px", "overflow": "hidden", "flex": "none", "position": "relative"}}><div style={v.bg} /></div>
               <div style={{"flex": "1", "minWidth": "0"}}><div style={{"fontSize": "17px", "fontWeight": "600", "color": "#fff"}}>{v.title}</div><div style={{"fontSize": "13px", "color": "#8c828c", "marginTop": "2px"}}>{v.tagline}</div></div>
@@ -40,7 +40,7 @@ export default function CheckoutPage() {
           </>)}
           {(coHasDiscount) && (<>
             <div style={{"display": "flex", "alignItems": "baseline", "justifyContent": "space-between", "paddingTop": "16px"}}><span style={{"fontSize": "15px", "color": "#8c828c"}}>Subtotal</span><span style={{"fontSize": "15px", "color": "#b3a9b0"}}>{payCrypto ? coSubtotalUsd : coSubtotalFmt}</span></div>
-            {(coDiscountRows||[]).map((r: any, _k2: number) => (
+            {(coDiscountRows||[]).map((r, _k2: number) => (
               <div key={_k2} style={{"display": "flex", "alignItems": "baseline", "justifyContent": "space-between", "paddingTop": "8px"}}><span style={{"fontSize": "15px", "color": "#ff7ab8"}}>{r.label} −{r.pct}%</span><span style={{"fontSize": "15px", "fontWeight": "600", "color": "#ff7ab8"}}>{payCrypto ? r.usd : r.stars}</span></div>
             ))}
           </>)}
@@ -53,7 +53,7 @@ export default function CheckoutPage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8c828c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{"transform": payOpen ? 'rotate(180deg)' : 'none', "transition": "transform .25s"}}><path d="M6 9l6 6 6-6" /></svg>
           </div>
           {payOpen && (<div style={{"marginTop": "16px"}}>
-          {(payMethods||[]).map((m: any, _k1: number) => (<React.Fragment key={_k1}>
+          {(payMethods||[]).map((m, _k1: number) => (<React.Fragment key={_k1}>
           <div onClick={() => { m.onSelect(); setPayOpen(false) }} style={m.cardStyle}>
             <div style={{"width": "46px", "height": "46px", "borderRadius": "50%", "background": "rgba(255,255,255,.05)", "border": "1px solid rgba(255,255,255,.08)", "display": "flex", "alignItems": "center", "justifyContent": "center", "flex": "none"}}>
               {m.crypto

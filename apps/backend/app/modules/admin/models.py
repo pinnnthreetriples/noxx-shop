@@ -1,8 +1,8 @@
 import enum
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 from sqlalchemy import BigInteger, Integer, String, Boolean, Text, ForeignKey, DateTime, Numeric, Enum, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from app.core.models_base import Base
 
 

@@ -2,7 +2,6 @@
 from typing import Optional, Dict, Any
 from sqlalchemy import inspect as sa_inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.admin.models import AdminLog
 from app.modules.catalog.models import Tag, TagTranslation
 from app.modules.admin_api.tags.repository import TagAdminRepository
 from app.modules.admin_api.filters import LANGUAGE_CODES, AdminListFilters

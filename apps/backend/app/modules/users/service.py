@@ -1,6 +1,5 @@
 """User use-case service."""
 from __future__ import annotations
-from typing import Optional, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import ProfileOut

@@ -23,7 +23,7 @@ export default function SubscriptionPage() {
           {(premiumActive) && (<div style={{"position": "relative", "marginTop": "15px", "display": "flex", "alignItems": "center", "gap": "7px", "fontSize": "13px", "color": "rgba(255,255,255,.6)"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="1.7"><circle cx="12" cy="12" r="9" /><path d="M12 7.5V12l3 2" /></svg>Active until {premiumUntilFmt}</div>)}
         </div>
         <div style={{"fontSize": "15px", "fontWeight": "600", "color": "#e9e2e8", "marginBottom": "14px"}}>Choose your plan</div>
-        {(subPlans||[]).map((p: any, _k0: number) => (<React.Fragment key={_k0}>
+        {(subPlans||[]).map((p, _k0: number) => (<React.Fragment key={_k0}>
           <div data-press="" onClick={p.onSelect} style={p.cardStyle}>
             {(p.tag) && (<><div style={{"position": "absolute", "top": "-9px", "right": "14px", "padding": "2px 9px", "borderRadius": "999px", "background": "linear-gradient(135deg,#ff5aa0,#d63d8f)", "color": "#fff", "fontSize": "11px", "fontWeight": "700", "letterSpacing": ".3px"}}>{p.tag}</div></>)}
             <div style={p.dotStyle}>{(p.selected) && (<><div data-radio-dot="" ref={Motion.planDotPopRef} style={{"width": "10px", "height": "10px", "borderRadius": "50%", "background": "#ff5aa0"}} /></>)}</div>

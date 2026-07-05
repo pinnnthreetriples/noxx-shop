@@ -41,7 +41,7 @@ async def serve_media(path: str, request: Request):
             if start > end or end >= file_size:
                 raise ValueError("Invalid range")
         except Exception:
-            raise HTTPException(status_code=416, detail="Invalid Range")
+            raise HTTPException(status_code=416, detail="Invalid Range") from None
 
         with open(file_path, "rb") as f:
             f.seek(start)

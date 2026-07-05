@@ -5,7 +5,6 @@ media-server container. The DB stores the relative path; the miniapp prefixes
 it with its media base URL.
 """
 import os
-import shutil
 import uuid
 
 from fastapi import APIRouter, HTTPException, UploadFile

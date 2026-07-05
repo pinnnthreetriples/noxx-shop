@@ -1,5 +1,5 @@
 """Product admin service - use-case logic."""
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from sqlalchemy import inspect as sa_inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.admin.models import AdminLog

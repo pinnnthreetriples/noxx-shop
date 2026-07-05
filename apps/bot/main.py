@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 from aiogram import Dispatcher
 
@@ -46,10 +47,8 @@ async def on_shutdown():
     for task in list(_background_tasks):
         task.cancel()
     for task in list(_background_tasks):
-        try:
+        with contextlib.suppress(asyncio.CancelledError, Exception):
             await task
-        except (asyncio.CancelledError, Exception):
-            pass
     _background_tasks.clear()
     await api_client.close()
     await bot.session.close()

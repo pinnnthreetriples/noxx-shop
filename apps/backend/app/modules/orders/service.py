@@ -13,13 +13,12 @@ from typing import List, Optional, Dict, Any
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import or_, update, select
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.modules.orders.models import (
     Order,
     OrderItem,
-    Payment,
     OrderStatus,
     PaymentStatus,
 )
@@ -376,7 +375,7 @@ class OrderService:
             data = await select_coin(order.orbchain_track_id, coin)
         except OrbChainError as e:
             logger.warning("OrbChain select coin error: %s", e)
-            raise ValueError("Could not reserve a deposit address, please try again")
+            raise ValueError("Could not reserve a deposit address, please try again") from e
         addr = data.get("address")
         remote = (data.get("status") or "").lower()
         return PaymentStateOut(
@@ -424,13 +423,13 @@ class OrderService:
         limit: int = 20,
         offset: int = 0,
     ) -> List[OrderOut]:
-        from app.modules.catalog.service import resolve_language, _product_title
+        from app.modules.catalog.service import resolve_language
         lang = resolve_language(user)
         orders = await self.order_repo.list_for_user(user.id, limit=limit, offset=offset)
         return [self._to_order_out(o, lang) for o in orders]
 
     async def get_user_order(self, user, order_id: int) -> Optional[OrderOut]:
-        from app.modules.catalog.service import resolve_language, _product_title
+        from app.modules.catalog.service import resolve_language
         lang = resolve_language(user)
         o = await self.order_repo.get_by_id_for_user(order_id, user.id)
         if not o:

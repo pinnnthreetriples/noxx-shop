@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.settings.repository import SettingsRepository
 from app.modules.admin.models import Setting, AdminLog
-from app.modules.admin.schemas import SettingsOut, LanguageOut
+from app.modules.admin.schemas import LanguageOut
 
 
 LANGUAGE_NAMES = {

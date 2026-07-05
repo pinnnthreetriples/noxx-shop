@@ -1,7 +1,6 @@
 """Promo use-case service."""
 from __future__ import annotations
 from datetime import datetime, timezone
-from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.promos.repository import PromoCodeRepository
 from app.modules.promos.schemas import PromoValidateOut

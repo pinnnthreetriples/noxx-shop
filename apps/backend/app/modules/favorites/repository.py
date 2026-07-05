@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, desc
 from app.modules.favorites.models import Favorite, RecentlyViewed
 from app.modules.catalog.models import Product
 

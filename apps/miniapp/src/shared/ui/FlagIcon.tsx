@@ -1,4 +1,3 @@
-// @ts-nocheck — vendored NoxX design-system component (inline styles)
 import * as React from 'react'
 
 export type FlagCode = 'en' | 'ru' | 'es' | 'de' | 'el' | 'tr' | 'bg' | 'sr' | 'ro' | 'mo';
@@ -74,12 +73,14 @@ export function FlagIcon({ code, size = 23, style = {} }: FlagIconProps) {
 }
 
 /** Language codes with a flag, in picker order. */
+// eslint-disable-next-line react-refresh/only-export-components -- data export alongside the vendored component; HMR hint only
 export const FLAG_CODES = Object.keys(FLAGS);
 
 /** Returns just the flag <svg> (fills its container) for embedding in an
  *  existing chip wrapper. Returns null for unknown codes. */
+// eslint-disable-next-line react-refresh/only-export-components -- helper export alongside the vendored component; HMR hint only
 export function flagSvg(code: FlagCode | string): React.ReactElement | null {
-  const flag = (FLAGS as any)[code]
+  const flag = (FLAGS as Partial<Record<string, React.ReactElement>>)[code]
   if (!flag) return null
   return (
     <svg width="100%" height="100%" viewBox="0 0 24 16" style={{ display: 'block' }}>{flag}</svg>

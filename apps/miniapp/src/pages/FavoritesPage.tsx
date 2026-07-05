@@ -33,7 +33,7 @@ export default function FavoritesPage() {
         </>)}
 
         <div style={{"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "14px"}}>
-          {(favoriteItems||[]).map((v: any, _k0: number) => (<React.Fragment key={_k0}>
+          {(favoriteItems||[]).map((v, _k0: number) => (<React.Fragment key={_k0}>
             <div style={{"display": "flex", "flexDirection": "column", "borderRadius": "18px", "overflow": "hidden", "background": "rgba(255,255,255,.03)", "border": "1px solid rgba(255,255,255,.06)"}}>
               <div onClick={v.onOpen} style={{"position": "relative", "width": "100%", "height": "120px", "cursor": "pointer"}}>
                 <div style={v.bg} />

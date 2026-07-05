@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.auth import get_current_admin
 from app.modules.admin.models import Admin
 from app.modules.admin_api.auth.service import AdminAuthService
-from app.modules.admin_api.auth.schemas import LoginRequest, LoginResponse, AdminMeResponse
+from app.modules.admin_api.auth.schemas import LoginResponse, AdminMeResponse
 
 router = APIRouter(prefix="/auth", tags=["admin-auth"])
 

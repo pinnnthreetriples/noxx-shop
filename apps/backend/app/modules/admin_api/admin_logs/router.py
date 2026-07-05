@@ -1,5 +1,4 @@
 """AdminLogs router - thin API layer."""
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db

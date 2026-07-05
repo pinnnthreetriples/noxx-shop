@@ -1,9 +1,10 @@
 import enum
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import Integer, String, Boolean, ForeignKey, DateTime, Text, Numeric, Enum, func, UniqueConstraint
+from sqlalchemy import Integer, String, ForeignKey, DateTime, Numeric, Enum, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.models_base import Base
+from app.modules.promos.models import PromoCode, PromoRedemption  # noqa: F401 - re-exported
 
 
 class OrderStatus(str, enum.Enum):
@@ -21,8 +22,6 @@ class PaymentStatus(str, enum.Enum):
     failed = "failed"
 
 
-# Re-export PromoCode and PromoRedemption from promos module
-from app.modules.promos.models import PromoCode, PromoRedemption
 
 
 class Cart(Base):

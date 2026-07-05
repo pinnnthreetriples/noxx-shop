@@ -1,10 +1,10 @@
 """Order repository - SQL operations only."""
 from typing import List, Optional, Tuple
-from sqlalchemy import select, func, desc, asc, or_
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.orders.models import Order, OrderItem
-from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, search_ilike, apply_updates
+from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, apply_updates
 
 # resend_links walks order.items -> item.product, so they must be eager-loaded.
 _ITEMS_EAGER = (selectinload(Order.items).selectinload(OrderItem.product),)

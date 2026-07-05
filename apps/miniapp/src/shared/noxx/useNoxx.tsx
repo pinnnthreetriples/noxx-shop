@@ -92,7 +92,7 @@ function fallbackRec(productId: number, title: string, priceStars: number, rate:
   }
 }
 
-export function useNoxx(): Record<string, any> {
+export function useNoxx() {
   const nav = RR.useNavigate()
   const loc = RR.useLocation()
   const params = RR.useParams()
@@ -147,13 +147,13 @@ export function useNoxx(): Record<string, any> {
   const detailQ = useProduct(params.slug)
   const ordersQ = useOrders()
   const profileQ = useProfile()
-  const orders = ordersQ.data ?? []
+  const orders = React.useMemo(() => ordersQ.data ?? [], [ordersQ.data])
 
   const favQ = useQuery({
     queryKey: ['favorites'],
     queryFn: async () => (await api.get<ProductListItem[]>('/favorites')).data,
   })
-  const favList = favQ.data ?? []
+  const favList = React.useMemo(() => favQ.data ?? [], [favQ.data])
   const favSet = React.useMemo(() => new Set(favList.map((p) => p.id)), [favList])
 
   const favMut = useMutation({
@@ -296,7 +296,7 @@ export function useNoxx(): Record<string, any> {
       }
     }
     return [...byProduct.values()]
-  }, [orders, recs])
+  }, [orders, recs, starRate])
   const purchaseFiltered = purchaseRecs.filter((v) => activeTab === 'all' ? true : activeTab === 'downloaded' ? v.status === 'downloaded' : v.status !== 'downloaded')
 
   const cartTotalStars = cartRecs.reduce((s, v) => s + v.stars, 0)
@@ -350,7 +350,7 @@ export function useNoxx(): Record<string, any> {
       cancelled: { label: 'Cancelled', color: '#9aa0b3' },
       refunded_manual: { label: 'Refunded', color: '#9aa0b3' },
     }
-    const groups: { label: string; items: Record<string, unknown>[] }[] = []
+    const groups: { label: string; items: { id: number; title: string; date: string; statusLabel: string; statusColor: string; stars: string; usd: string }[] }[] = []
     for (const o of orders) {
       const d = new Date(o.created_at)
       const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()

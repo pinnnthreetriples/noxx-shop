@@ -11,7 +11,7 @@ from app.modules.support.repository import (
     SupportTicketRepository,
     SupportMessageRepository,
 )
-from app.modules.support.models import SupportTicket, SupportMessage, TicketStatus
+from app.modules.support.models import TicketStatus
 from app.modules.orders.repository import BotMessageMapRepository
 from app.modules.admin.repository import AdminRepository
 from app.modules.support.schemas import (

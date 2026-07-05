@@ -2,7 +2,7 @@
 Shared filters for admin_api subdomains: pagination, sort, search.
 """
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional
 from sqlalchemy import select, func, desc, asc, or_
 from sqlalchemy.sql import Select
 
