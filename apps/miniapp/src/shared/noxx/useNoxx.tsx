@@ -116,7 +116,6 @@ export function useNoxx(): Record<string, any> {
   const [promoVisible, setPromoVisible] = React.useState(true)
   const [gateChecked, setGateChecked] = React.useState(false)
 
-  // ---- real backend data ----
   // Stars→USD rate: admin "manual" rate wins; "auto" = the design-baseline 0.02
   // (mirrors the backend default in core/config.py).
   const settingsQ = useQuery({
