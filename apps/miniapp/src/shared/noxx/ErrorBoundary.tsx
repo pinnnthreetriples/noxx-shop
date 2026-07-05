@@ -12,7 +12,6 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     return { error }
   }
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // eslint-disable-next-line no-console
     console.error('NoxX render error:', error, info)
   }
   render() {
