@@ -1,5 +1,5 @@
 """Settings router - thin API layer."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.auth import get_current_admin
@@ -15,10 +15,7 @@ async def get_settings(
     db: AsyncSession = Depends(get_db),
 ):
     service = SettingsAdminService(db)
-    setting = await service.get()
-    if not setting:
-        raise HTTPException(status_code=404, detail="Settings not found")
-    return setting
+    return await service.get()
 
 
 @router.put("/settings")
