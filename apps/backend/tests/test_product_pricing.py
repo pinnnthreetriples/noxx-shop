@@ -25,3 +25,14 @@ async def test_explicit_stars_kept(service):
     payload = {"status": "published", "price_stars": 250, "usd_price_manual": 10}
     await service._apply_pricing_rules(payload)
     assert payload["price_stars"] == 250
+
+
+def test_storefront_usd_ignores_stale_manual_in_auto_mode():
+    """Auto mode: the $ hint must come from stars x rate (client-side), not a
+    leftover manual value that could contradict the charged stars price."""
+    from app.modules.catalog.models import Product
+    from app.modules.catalog.service import _approx_usd
+    auto = Product(price_stars=500, usd_price_mode="auto", usd_price_manual=7)
+    assert _approx_usd(auto) is None
+    manual = Product(price_stars=500, usd_price_mode="manual", usd_price_manual=10)
+    assert _approx_usd(manual) == 10.0
