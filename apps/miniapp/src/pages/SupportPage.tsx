@@ -33,7 +33,7 @@ export default function SupportPage() {
     <>
 {(showSupport) && (<>
     <div data-screen-label="Support" style={{"position": "absolute", "inset": "0", "display": "flex", "flexDirection": "column"}}>
-      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "16px", "padding": "50px 22px 14px"}}><div onClick={backProfile} style={{"cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div><div style={{"fontSize": "23px", "fontWeight": "600", "color": "#fff"}}>Support</div></div>
+      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "16px", "padding": "16px 22px 14px"}}><div onClick={backProfile} style={{"cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div><div style={{"fontSize": "23px", "fontWeight": "600", "color": "#fff"}}>Support</div></div>
       <div style={{"flex": "1", "overflowY": "auto", "padding": "14px 22px 30px"}}>
         <div style={{"fontSize": "19px", "color": "#e9e2e8", "marginBottom": "22px"}}>How can we help you?</div>
 

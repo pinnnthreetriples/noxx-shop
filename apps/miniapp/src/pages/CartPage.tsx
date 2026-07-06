@@ -8,7 +8,7 @@ export default function CartPage() {
     <>
 {(showCart) && (<>
     <div data-screen-label="Cart" style={{"position": "absolute", "inset": "0", "display": "flex", "flexDirection": "column"}}>
-      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "justifyContent": "space-between", "padding": "46px 24px 16px"}}>
+      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "justifyContent": "space-between", "padding": "16px 24px 16px"}}>
         <div style={{"fontSize": "28px", "fontWeight": "700", "color": "#fff", "letterSpacing": "-.4px"}}>Your cart</div>
         <div onClick={cartClose} style={{"color": "#ff539d", "fontSize": "18px", "fontWeight": "500", "cursor": "pointer"}}>Close</div>
       </div>
