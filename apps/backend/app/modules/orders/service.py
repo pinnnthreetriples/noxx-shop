@@ -182,6 +182,10 @@ class OrderService:
         products = await self.product_repo.list_published_by_ids(product_ids)
         if not products:
             raise ValueError("No valid products")
+        # money guard: a mispriced (0-Star) product must block checkout,
+        # not silently sell for the 1-Star invoice minimum
+        if any((p.price_stars or 0) <= 0 for p in products):
+            raise ValueError("A product in the cart has no price set — contact support")
 
         total = sum(p.price_stars for p in products)
         dinfo = await self.calculate_discounts(user, product_ids, promo_code, total)
@@ -222,6 +226,8 @@ class OrderService:
             raise ValueError("Unknown plan")
         s = await self._settings_row()
         stars = (getattr(s, f"sub_price_{plan}_stars", None) if s else None) or self.SUB_PRICE_DEFAULTS[plan]
+        if stars <= 0:
+            raise ValueError("Subscription price is not configured")
         order = await self.order_repo.create(
             user_id=user.id,
             total_stars=stars,

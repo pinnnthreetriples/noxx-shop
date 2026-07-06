@@ -112,9 +112,9 @@ export const ProductEdit = () => (
     <SimpleForm>
       <TextInput source="slug" />
       <SelectInput source="status" choices={statusChoices} />
-      <NumberInput source="price_stars" />
-      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} />
-      <NumberInput source="usd_price_manual" />
+      <NumberInput source="price_stars" label="Цена (Stars)" helperText="Пусто или 0 — посчитается из «Цена (USD)» по курсу" />
+      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} label="Цена в $ на витрине" helperText="Авто — из Stars по курсу; Вручную — из поля «Цена (USD)»" />
+      <NumberInput source="usd_price_manual" label="Цена (USD)" />
       <ReferenceInput source="category_id" reference="categories">
         <AutocompleteInput optionText="slug" />
       </ReferenceInput>
@@ -143,9 +143,9 @@ export const ProductCreate = () => (
     <SimpleForm>
       <TextInput source="slug" />
       <SelectInput source="status" choices={statusChoices} defaultValue="draft" />
-      <NumberInput source="price_stars" />
-      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} defaultValue="auto" />
-      <NumberInput source="usd_price_manual" />
+      <NumberInput source="price_stars" label="Цена (Stars)" helperText="Пусто или 0 — посчитается из «Цена (USD)» по курсу" />
+      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} defaultValue="auto" label="Цена в $ на витрине" helperText="Авто — из Stars по курсу; Вручную — из поля «Цена (USD)»" />
+      <NumberInput source="usd_price_manual" label="Цена (USD)" />
       <ReferenceInput source="category_id" reference="categories">
         <AutocompleteInput optionText="slug" />
       </ReferenceInput>
