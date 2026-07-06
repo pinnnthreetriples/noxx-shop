@@ -3,6 +3,7 @@
 .initdata.dev
 backups/
 *.dump
+deploy.log
 
 # Dependencies / build output
 node_modules/
