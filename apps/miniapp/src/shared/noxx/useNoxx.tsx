@@ -399,7 +399,8 @@ export function useNoxx() {
 
   const detailTags = detailQ.data?.tags?.map((t) => t.title) ?? []
   const dupCat = dRec.badge && dRec.catSlug === dRec.badge.toLowerCase()
-  const tagLabels = [...new Set([dupCat ? '' : dRec.tagline, ...detailTags, dRec.premium ? 'Premium' : 'Standard'].filter(Boolean))]
+  // premium gets its chip; non-premium gets nothing — a "Standard" label is noise
+  const tagLabels = [...new Set([dupCat ? '' : dRec.tagline, ...detailTags, dRec.premium ? 'Premium' : ''].filter(Boolean))]
   // Premium perk: active subscriber gets premium videos for free (claim)
   const detailOwned = purchaseRecs.some((r) => r.id === dRec.id)
   const claimMut = useMutation({
