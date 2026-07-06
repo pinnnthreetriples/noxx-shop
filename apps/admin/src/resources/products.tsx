@@ -3,6 +3,7 @@ import {
   List, Datagrid, TextField, NumberField, BooleanField, EditButton, DeleteButton,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput, SelectField, Create,
   ReferenceInput, ReferenceArrayInput, AutocompleteInput, AutocompleteArrayInput,
+  ReferenceField, FunctionField,
   useInput, useNotify,
 } from 'react-admin'
 import { Box, Typography } from '@mui/material'
@@ -167,6 +168,9 @@ export const ProductList = () => (
     <Datagrid rowClick="edit">
       <TextField source="id" />
       <TextField source="slug" />
+      <ReferenceField source="category_id" reference="categories" label="Категория" sortable={false}>
+        <FunctionField render={categoryOptionText} />
+      </ReferenceField>
       <SelectField source="status" choices={statusChoices} />
       <NumberField source="price_stars" />
       <NumberField source="usd_price_manual" />
