@@ -1,8 +1,8 @@
 """Category repository - SQL operations only."""
 from typing import List, Optional, Tuple
-from sqlalchemy import select
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.catalog.models import Category, CategoryTranslation
+from app.modules.catalog.models import Category, CategoryTranslation, Product
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, search_ilike, apply_updates
 
 
@@ -39,8 +39,14 @@ class CategoryAdminRepository:
         apply_updates(category, fields)
         return category
     
-    async def soft_delete(self, category: Category):
-        category.status = "deleted"
+    async def hard_delete(self, category: Category):
+        # A category is just a shelf, not order history: really remove it.
+        # Detach its products (category_id is nullable), drop translations, then the row.
+        await self.db.execute(
+            update(Product).where(Product.category_id == category.id).values(category_id=None)
+        )
+        await self.db.execute(delete(CategoryTranslation).where(CategoryTranslation.category_id == category.id))
+        await self.db.execute(delete(Category).where(Category.id == category.id))
     
     # Translation helpers
     async def upsert_translation(self, category_id: int, language: str, title: str):

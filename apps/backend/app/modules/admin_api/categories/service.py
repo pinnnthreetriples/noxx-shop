@@ -60,10 +60,10 @@ class CategoryAdminService:
         await self.db.refresh(cat)
         return await self._serialize(cat)
     
-    async def soft_delete(self, admin, id: int) -> Optional[Category]:
+    async def delete(self, admin, id: int) -> Optional[int]:
         cat = await self.repo.get_by_id(id)
         if not cat:
             return None
-        await self.repo.soft_delete(cat)
+        await self.repo.hard_delete(cat)
         await self.db.commit()
-        return cat
+        return id

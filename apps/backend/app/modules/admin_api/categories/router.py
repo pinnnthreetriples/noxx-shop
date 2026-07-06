@@ -68,7 +68,7 @@ async def delete_category(
     db: AsyncSession = Depends(get_db),
 ):
     service = CategoryAdminService(db)
-    cat = await service.soft_delete(admin, id)
-    if not cat:
+    deleted = await service.delete(admin, id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Category not found")
-    return {"deleted": True}
+    return {"id": id}
