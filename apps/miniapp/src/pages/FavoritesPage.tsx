@@ -9,7 +9,7 @@ export default function FavoritesPage() {
 {(showFavorites) && (<>
     <div data-screen-label="Favorites" style={{"position": "absolute", "inset": "0", "display": "flex", "flexDirection": "column"}}>
       {(glowOn) && (<><div style={{"position": "absolute", "top": "40%", "right": "-70px", "width": "260px", "height": "300px", "background": "radial-gradient(circle,rgba(220,50,140,.15),transparent 70%)", "pointerEvents": "none"}} /></>)}
-      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "justifyContent": "space-between", "padding": "50px 22px 6px"}}>
+      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "justifyContent": "space-between", "padding": "16px 22px 6px"}}>
         <div style={{"fontFamily": "'Playfair Display',Georgia,serif", "fontStyle": "italic", "fontWeight": "800", "fontSize": "31px", "lineHeight": "1", "color": "#ff4d9e", "letterSpacing": ".3px", "textShadow": "0 2px 16px rgba(255,77,158,.5)"}}>NoxX</div>
         <div onClick={search} style={{"width": "42px", "height": "42px", "borderRadius": "50%", "background": "rgba(255,255,255,.05)", "border": "1px solid rgba(255,255,255,.08)", "display": "flex", "alignItems": "center", "justifyContent": "center", "cursor": "pointer"}}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#e9e2e8" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.2-4.2" /></svg></div>
       </div>

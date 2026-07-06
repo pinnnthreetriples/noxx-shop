@@ -12,7 +12,7 @@ export default function CatalogPage() {
 {(showCatalog) && (<>
     <div data-screen-label="Catalog" style={{"position": "absolute", "inset": "0", "display": "flex", "flexDirection": "column"}}>
       {(glowOn) && (<><div style={{"position": "absolute", "bottom": "-40px", "left": "-60px", "width": "280px", "height": "280px", "background": "radial-gradient(circle,rgba(150,40,120,.18),transparent 70%)", "pointerEvents": "none"}} /></>)}
-      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "14px", "padding": "50px 22px 8px", "position": "relative", "zIndex": "2"}}>
+      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "14px", "padding": "16px 22px 8px", "position": "relative", "zIndex": "2"}}>
         <div onClick={goHome} style={{"width": "44px", "height": "44px", "borderRadius": "50%", "background": "rgba(255,255,255,.05)", "border": "1px solid rgba(255,255,255,.08)", "display": "flex", "alignItems": "center", "justifyContent": "center", "cursor": "pointer"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div>
         <div style={{"fontSize": "27px", "fontWeight": "700", "color": "#fff", "letterSpacing": "-.4px"}}>Catalog</div>
         <div style={{"marginLeft": "auto", "position": "relative", "cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9e2e8" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M6 12h12M9 17h6" /></svg><div style={{"position": "absolute", "top": "-2px", "right": "-2px", "width": "8px", "height": "8px", "borderRadius": "50%", "background": "#ff2e93"}} /></div>

@@ -12,7 +12,7 @@ export default function PurchasesPage() {
 {(showPurchases) && (<>
     <div data-screen-label="Purchases" style={{"position": "absolute", "inset": "0", "display": "flex", "flexDirection": "column"}}>
       {(glowOn) && (<><div style={{"position": "absolute", "bottom": "30px", "left": "-50px", "width": "240px", "height": "240px", "background": "radial-gradient(circle,rgba(220,50,140,.16),transparent 70%)", "pointerEvents": "none"}} /></>)}
-      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "justifyContent": "space-between", "padding": "50px 22px 14px"}}>
+      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "justifyContent": "space-between", "padding": "16px 22px 14px"}}>
         <div onClick={goHome} style={{"width": "44px", "height": "44px", "borderRadius": "50%", "background": "rgba(255,255,255,.05)", "border": "1px solid rgba(255,255,255,.08)", "display": "flex", "alignItems": "center", "justifyContent": "center", "cursor": "pointer"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div>
         <div style={{"fontSize": "23px", "fontWeight": "600", "color": "#fff"}}>My purchases</div>
         <div style={{"cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e9e2e8" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M7 12h10M10 17h4" /></svg></div>

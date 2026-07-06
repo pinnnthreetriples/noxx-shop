@@ -11,7 +11,7 @@ export default function PaymentHistoryPage() {
     <>
 {(showPayments) && (<>
     <div data-screen-label="Payment history" style={{"position": "absolute", "inset": "0", "display": "flex", "flexDirection": "column"}}>
-      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "16px", "padding": "50px 22px 14px"}}><div onClick={backProfile} style={{"cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div><div style={{"fontSize": "23px", "fontWeight": "600", "color": "#fff"}}>Payment history</div></div>
+      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "16px", "padding": "16px 22px 14px"}}><div onClick={backProfile} style={{"cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div><div style={{"fontSize": "23px", "fontWeight": "600", "color": "#fff"}}>Payment history</div></div>
       <div style={{"flex": "1", "overflowY": "auto", "padding": "8px 22px 30px"}}>
         <div style={{"display": "flex", "alignItems": "center", "justifyContent": "space-between", "borderRadius": "18px", "padding": "18px 20px", "marginBottom": "22px", "background": "linear-gradient(120deg,#241019,#160a11)", "border": "1px solid rgba(255,90,160,.22)"}}>
           <div><div style={{"fontSize": "13px", "color": "rgba(255,255,255,.6)"}}>Total spent</div><div style={{"fontSize": "24px", "fontWeight": "700", "color": "#fff", "marginTop": "3px"}}>{payCrypto ? payTotalUsd : (<>{payTotalStars} {STAR}</>)}</div></div>

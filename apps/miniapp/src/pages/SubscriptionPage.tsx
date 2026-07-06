@@ -8,7 +8,7 @@ export default function SubscriptionPage() {
     <>
 {(showSubscription) && (<>
     <div data-screen-label="Subscription" style={{"position": "absolute", "inset": "0", "display": "flex", "flexDirection": "column"}}>
-      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "16px", "padding": "50px 22px 14px"}}><div onClick={backProfile} style={{"cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div><div style={{"fontSize": "23px", "fontWeight": "600", "color": "#fff"}}>Subscription</div></div>
+      <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "16px", "padding": "16px 22px 14px"}}><div onClick={backProfile} style={{"cursor": "pointer"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg></div><div style={{"fontSize": "23px", "fontWeight": "600", "color": "#fff"}}>Subscription</div></div>
       <div style={{"flex": "1", "overflowY": "auto", "padding": "8px 22px 30px"}}>
         <div style={{"position": "relative", "overflow": "hidden", "borderRadius": "22px", "padding": "22px", "marginBottom": "24px", "background": "linear-gradient(120deg,#2a0f1d,#180a12)", "border": "1px solid rgba(255,90,160,.28)"}}>
           <div style={{"position": "absolute", "right": "-22px", "top": "-22px", "width": "140px", "height": "140px", "background": "radial-gradient(circle,rgba(255,90,170,.4),transparent 65%)", "filter": "blur(12px)", "pointerEvents": "none"}} />
