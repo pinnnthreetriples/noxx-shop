@@ -147,11 +147,13 @@ class SupportService:
         result = []
         for t in tickets:
             user = await user_repo.get_by_id(t.user_id)
+            first_msgs = await self.msg_repo.list_for_ticket(t.id, limit=1)
             result.append({
                 "ticket_id": t.id,
                 "user_telegram_id": user.telegram_id if user else None,
                 "topic": t.topic.value if hasattr(t.topic, "value") else str(t.topic),
                 "created_at": t.created_at.isoformat() if t.created_at else None,
+                "message": first_msgs[0].text if first_msgs else None,
             })
         return result
 

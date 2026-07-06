@@ -26,12 +26,15 @@ async def periodic_ticket_checker():
                 user_telegram_id = t["user_telegram_id"]
                 topic = t.get("topic") or ""
                 created_at = t.get("created_at")
+                user_message = (t.get("message") or "").strip()
                 text = (
                     f"New support ticket #{ticket_id}\n"
                     f"User ID: {user_telegram_id}\n"
                     f"Topic: {topic}\n"
                     f"Created: {created_at}"
                 )
+                if user_message:
+                    text += f"\n\n{user_message[:3000]}"
                 for admin_tg_id in admin_ids:
                     try:
                         sent = await bot.send_message(admin_tg_id, text)

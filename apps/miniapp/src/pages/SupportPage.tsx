@@ -42,10 +42,9 @@ export default function SupportPage() {
           <div key={k} style={{"padding": "0 6px 18px"}}><div style={{"fontSize": "14.5px", "fontWeight": "600", "color": "#fff", "marginBottom": "5px"}}>{t.head}</div><div style={{"fontSize": "13.5px", "lineHeight": "1.55", "color": "#9a9098"}}>{t.body}</div></div>
         ))}
 
-        {(!formOpen && !sent) && (<>
-        <div onClick={() => setFormOpen(true)} style={rowStyle}><div style={iconStyle}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff8ec2" strokeWidth="1.6" strokeLinejoin="round"><path d="M4 5h16v11H8l-4 3z" /></svg></div><span style={{"flex": "1", "fontSize": "16px", "fontWeight": "500", "color": "#fff"}}>Contact support</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6a616b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg></div>
-        <div onClick={() => { setTopic('payment'); setFormOpen(true) }} style={{ ...rowStyle, marginBottom: 0 }}><div style={iconStyle}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff8ec2" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3l9 16H3z" /><path d="M12 10v4" /><circle cx="12" cy="16.5" r="0.5" fill="#ff8ec2" /></svg></div><span style={{"flex": "1", "fontSize": "16px", "fontWeight": "500", "color": "#fff"}}>Report an issue</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6a616b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg></div>
-        </>)}
+        {(!formOpen && !sent) && (
+        <div onClick={() => setFormOpen(true)} style={{ ...rowStyle, marginBottom: 0 }}><div style={iconStyle}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff8ec2" strokeWidth="1.6" strokeLinejoin="round"><path d="M4 5h16v11H8l-4 3z" /></svg></div><span style={{"flex": "1", "fontSize": "16px", "fontWeight": "500", "color": "#fff"}}>Contact support</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6a616b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg></div>
+        )}
 
         {(formOpen && !sent) && (
         <div style={{"borderRadius": "16px", "background": "rgba(255,255,255,.03)", "border": "1px solid rgba(255,255,255,.06)", "padding": "18px"}}>
