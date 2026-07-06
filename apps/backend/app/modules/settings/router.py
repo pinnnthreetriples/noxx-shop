@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -21,7 +21,12 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Setting).order_by(Setting.id))
     setting = result.scalars().first()
     if not setting:
-        raise HTTPException(status_code=404, detail="Settings not found")
+        # self-healing singleton: recreate defaults instead of 404 — a lost
+        # row (fresh DB, partial restore) must not degrade the whole app
+        setting = Setting()
+        db.add(setting)
+        await db.commit()
+        await db.refresh(setting)
     return setting
 
 
