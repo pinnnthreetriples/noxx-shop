@@ -11,7 +11,14 @@ if ($Auto -and $local -eq $remote) { exit 0 }
 
 "$(Get-Date -Format s) deploying $($remote.Substring(0,7))"
 git merge --ff-only origin/main
-docker compose -p infra -f infra/docker-compose.yml --env-file .env --project-directory infra up -d --build
+
+# ponytail: build one service at a time — parallel builds OOM-crash Docker on this laptop
+$compose = @('compose', '-p', 'infra', '-f', 'infra/docker-compose.yml', '--env-file', '.env', '--project-directory', 'infra')
+foreach ($svc in @('backend', 'bot', 'media-server', 'admin', 'miniapp')) {
+    docker @compose build $svc
+    if ($LASTEXITCODE -ne 0) { "$(Get-Date -Format s) deploy FAILED: build $svc"; exit 1 }
+}
+docker @compose up -d
 
 $deadline = (Get-Date).AddMinutes(3)
 do {
