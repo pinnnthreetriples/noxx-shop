@@ -2,6 +2,7 @@
 from typing import List, Optional, Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from app.modules.support.models import SupportTicket
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, apply_updates
 
@@ -21,7 +22,11 @@ class SupportTicketAdminRepository:
         return list(result.scalars().all()), total
     
     async def get_by_id(self, id: int) -> Optional[SupportTicket]:
-        result = await self.db.execute(select(SupportTicket).where(SupportTicket.id == id))
+        result = await self.db.execute(
+            select(SupportTicket)
+            .options(selectinload(SupportTicket.messages))
+            .where(SupportTicket.id == id)
+        )
         return result.scalars().first()
     
     async def update(self, ticket: SupportTicket, fields: dict) -> SupportTicket:

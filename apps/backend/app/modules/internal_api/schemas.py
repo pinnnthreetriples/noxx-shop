@@ -65,6 +65,7 @@ class TicketNotification(BaseModel):
     user_telegram_id: int
     topic: str
     created_at: datetime
+    message: Optional[str] = None
 
 
 class UnnotifiedTicketsResponse(BaseModel):

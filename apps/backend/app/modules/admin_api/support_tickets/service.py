@@ -16,14 +16,41 @@ class SupportTicketAdminService:
         items, total = await self.repo.list_with_filters(f)
         return {"data": items, "total": total}
     
-    async def get(self, id: int) -> Optional[SupportTicket]:
-        return await self.repo.get_by_id(id)
-    
-    async def update(self, admin, id: int, payload: dict) -> Optional[SupportTicket]:
+    async def get(self, id: int) -> Optional[Dict[str, Any]]:
+        ticket = await self.repo.get_by_id(id)
+        if not ticket:
+            return None
+        return self._serialize(ticket)
+
+    async def update(self, admin, id: int, payload: dict) -> Optional[Dict[str, Any]]:
         ticket = await self.repo.get_by_id(id)
         if not ticket:
             return None
         await self.repo.update(ticket, {k: v for k, v in payload.items() if hasattr(ticket, k) and k != "id"})
         await self.db.commit()
-        await self.db.refresh(ticket)
-        return ticket
+        # re-fetch with messages eager-loaded: refresh() would expire the
+        # relationship and trigger a lazy load that async sessions forbid
+        ticket = await self.repo.get_by_id(id)
+        return self._serialize(ticket) if ticket else None
+
+    @staticmethod
+    def _serialize(t: SupportTicket) -> Dict[str, Any]:
+        return {
+            "id": t.id,
+            "user_id": t.user_id,
+            "topic": getattr(t.topic, "value", str(t.topic)),
+            "status": getattr(t.status, "value", str(t.status)),
+            "created_at": t.created_at,
+            "updated_at": t.updated_at,
+            "messages": [
+                {
+                    "id": m.id,
+                    "sender_type": m.sender_type,
+                    "text": m.text,
+                    "file_url": m.file_url,
+                    "file_type": m.file_type,
+                    "created_at": m.created_at,
+                }
+                for m in t.messages
+            ],
+        }

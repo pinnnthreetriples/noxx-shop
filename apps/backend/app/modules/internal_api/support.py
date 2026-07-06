@@ -38,6 +38,7 @@ async def unnotified_tickets(after_id: int = 0, limit: int = 50, db: AsyncSessio
             user_telegram_id=t["user_telegram_id"],
             topic=t["topic"],
             created_at=t["created_at"],
+            message=t.get("message"),
         )
         for t in tickets
     ])
