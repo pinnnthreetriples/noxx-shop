@@ -110,7 +110,7 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
       <TextInput source="slug" />
       <SelectInput source="status" choices={statusChoices} defaultValue={create ? 'draft' : undefined} />
       <ReferenceInput source="category_id" reference="categories">
-        <AutocompleteInput optionText="slug" />
+        <AutocompleteInput optionText={categoryOptionText} label="Категория" />
       </ReferenceInput>
     </Row>
     <Section title="Цена" />
@@ -154,8 +154,17 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
   </>
 )
 
+// dropdown label: human RU title when the API sent one, latin slug otherwise
+const categoryOptionText = (c: { slug?: string; title_ru?: string }) =>
+  c?.title_ru ? `${c.title_ru} (${c.slug})` : (c?.slug ?? '')
+
+const productFilters = [
+  <TextInput key="q" source="q" label="Поиск" alwaysOn />,
+  <SelectInput key="status" source="status" label="Статус" choices={statusChoices} />,
+]
+
 export const ProductList = () => (
-  <List>
+  <List filters={productFilters}>
     <Datagrid rowClick="edit">
       <TextField source="id" />
       <TextField source="slug" />

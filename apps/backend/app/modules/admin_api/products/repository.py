@@ -2,7 +2,7 @@
 from typing import List, Optional, Tuple
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.catalog.models import Product, ProductTranslation, ProductTag
+from app.modules.catalog.models import Product, ProductStatus, ProductTranslation, ProductTag
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, search_ilike, apply_updates
 
 
@@ -16,6 +16,9 @@ class ProductAdminRepository:
             stmt = stmt.where(search_ilike([Product.slug, Product.google_drive_link], f.q))
         if f.status:
             stmt = stmt.where(Product.status == f.status)
+        else:
+            # soft-deleted products are hidden unless explicitly filtered for
+            stmt = stmt.where(Product.status != ProductStatus.deleted)
         total = await count_total(self.db, stmt)
         stmt = apply_sort(stmt, Product, f.sort_field, f.desc_order)
         stmt = stmt.offset(f.offset).limit(f.limit)

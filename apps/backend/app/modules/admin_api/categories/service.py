@@ -15,7 +15,8 @@ class CategoryAdminService:
     async def list(self, q: Optional[str], sort_field: str, order: str, start: int, end: int) -> Dict[str, Any]:
         f = AdminListFilters(q=q, sort_field=sort_field, order=order, start=start, end=end)
         items, total = await self.repo.list_with_filters(f)
-        return {"data": items, "total": total}
+        # serialized rows carry title_<lang>, so dropdowns can show human names
+        return {"data": [await self._serialize(c) for c in items], "total": total}
     
     async def get(self, id: int) -> Optional[Dict[str, Any]]:
         cat = await self.repo.get_by_id(id)
