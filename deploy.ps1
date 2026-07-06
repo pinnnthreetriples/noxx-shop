@@ -1,24 +1,31 @@
-# Deploy latest main: git pull + rebuild containers + health check.
-# -Auto: for the scheduled task; exits silently when already up to date.
+# Deploy: pull ready images from ghcr.io (built by GitHub CI) + restart + health check.
+# -Auto: for the scheduled task; exits silently when nothing new arrived.
+# One-time laptop setup: docker login ghcr.io (PAT with read:packages).
 param([switch]$Auto)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 git fetch origin main --quiet
-$local = git rev-parse HEAD
-$remote = git rev-parse origin/main
-if ($Auto -and $local -eq $remote) { exit 0 }
+git merge --ff-only origin/main --quiet 2>$null
 
-"$(Get-Date -Format s) deploying $($remote.Substring(0,7))"
-git merge --ff-only origin/main
-
-# ponytail: build one service at a time — parallel builds OOM-crash Docker on this laptop
 $compose = @('compose', '-p', 'infra', '-f', 'infra/docker-compose.yml', '--env-file', '.env', '--project-directory', 'infra')
-foreach ($svc in @('backend', 'bot', 'media-server', 'admin', 'miniapp')) {
-    docker @compose build $svc
-    if ($LASTEXITCODE -ne 0) { "$(Get-Date -Format s) deploy FAILED: build $svc"; exit 1 }
+$services = @('backend', 'bot', 'media-server', 'admin', 'miniapp')
+
+function Get-ImageIds {
+    ($services | ForEach-Object { docker image inspect "ghcr.io/pinnnthreetriples/noxx-$_:latest" -f '{{.Id}}' 2>$null }) -join ','
 }
-docker @compose up -d
+
+$before = Get-ImageIds
+# pull only our five ghcr images: postgres/redis/cloudflared live on Docker Hub,
+# which is unreachable from here without a VPN
+docker @compose pull --quiet @services
+if ($LASTEXITCODE -ne 0) { "$(Get-Date -Format s) deploy FAILED: image pull (docker login ghcr.io done?)"; exit 1 }
+$after = Get-ImageIds
+
+if ($Auto -and $before -eq $after) { exit 0 }
+
+"$(Get-Date -Format s) deploying $(git rev-parse --short HEAD)"
+docker @compose up -d --no-build
 
 $deadline = (Get-Date).AddMinutes(3)
 do {
