@@ -144,8 +144,7 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
       </ReferenceArrayInput>
     </Row>
     <Row>
-      <BooleanInput source="is_premium" />
-      <BooleanInput source="available_for_subscription" />
+      <BooleanInput source="is_premium" label="Премиум — подписчики получают бесплатно" />
     </Row>
     <Section title="Название" />
     <TitleInputs />
