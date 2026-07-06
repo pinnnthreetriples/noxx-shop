@@ -32,6 +32,7 @@ services:
       retries: 5
 
   backend:
+    image: ghcr.io/pinnnthreetriples/noxx-backend:latest
     build:
       context: ../apps/backend
       dockerfile: Dockerfile
@@ -73,6 +74,7 @@ services:
       - media_data:/app/media
 
   bot:
+    image: ghcr.io/pinnnthreetriples/noxx-bot:latest
     build:
       context: ../apps/bot
       dockerfile: Dockerfile
@@ -91,6 +93,7 @@ services:
         condition: service_started
 
   admin:
+    image: ghcr.io/pinnnthreetriples/noxx-admin:latest
     build:
       context: ../apps/admin
       dockerfile: Dockerfile
@@ -108,6 +111,7 @@ services:
   # Production miniapp: static build + nginx (same-origin /api and /media proxies).
   # Host port 5175 is what the app tunnel points at.
   miniapp:
+    image: ghcr.io/pinnnthreetriples/noxx-miniapp:latest
     build:
       context: ../apps/miniapp
       dockerfile: Dockerfile
@@ -121,6 +125,7 @@ services:
       - media-server
 
   media-server:
+    image: ghcr.io/pinnnthreetriples/noxx-media-server:latest
     build:
       context: ../apps/backend
       dockerfile: Dockerfile.media
