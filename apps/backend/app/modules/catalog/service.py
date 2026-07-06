@@ -56,6 +56,15 @@ def _tags_out(product: Product, lang: str) -> List[TagOut]:
     return out
 
 
+def _approx_usd(product: Product) -> Optional[float]:
+    """Storefront $ hint. Manual mode shows the set USD; auto mode returns None so
+    the client derives it from stars × rate — otherwise a stale manual value could
+    contradict the stars price the buyer is actually charged."""
+    if product.usd_price_mode == "manual" and product.usd_price_manual:
+        return float(product.usd_price_manual)
+    return None
+
+
 def _to_list_item(product: Product, lang: str) -> ProductListItem:
     return ProductListItem(
         id=product.id, slug=product.slug, title=_product_title(product, lang),
@@ -63,7 +72,7 @@ def _to_list_item(product: Product, lang: str) -> ProductListItem:
         display_views=product.display_views, display_purchases=product.display_purchases,
         cover_url=product.cover_url, is_premium=product.is_premium,
         price_stars=product.price_stars,
-        approx_usd=float(product.usd_price_manual) if product.usd_price_manual else None,
+        approx_usd=_approx_usd(product),
     )
 
 
@@ -75,7 +84,7 @@ def _to_detail(product: Product, lang: str) -> ProductDetail:
         display_views=product.display_views, display_purchases=product.display_purchases,
         cover_url=product.cover_url, preview_video_url=product.preview_video_url,
         price_stars=product.price_stars,
-        approx_usd=float(product.usd_price_manual) if product.usd_price_manual else None,
+        approx_usd=_approx_usd(product),
         is_premium=product.is_premium,
     )
 
