@@ -56,11 +56,15 @@ async def seed() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
     async with async_session() as db:
-        # Seed categories
+        # Seed categories. Titles cover every UI language (see language-switcher),
+        # so a category never falls back to English for a supported locale.
         cats = [
-            ("new", {"en": "New", "ru": "Новые", "de": "Neu", "tr": "Yeni"}),
-            ("popular", {"en": "Popular", "ru": "Популярные", "de": "Beliebt", "tr": "Popüler"}),
-            ("premium", {"en": "Premium", "ru": "Премиум", "de": "Premium", "tr": "Premium"}),
+            ("new", {"en": "New", "ru": "Новые", "de": "Neu", "el": "Νέα", "ro": "Noi",
+                     "bg": "Нови", "mo": "Noi", "sr": "Ново", "tr": "Yeni"}),
+            ("popular", {"en": "Popular", "ru": "Популярные", "de": "Beliebt", "el": "Δημοφιλή",
+                         "ro": "Populare", "bg": "Популярни", "mo": "Populare", "sr": "Популарно", "tr": "Popüler"}),
+            ("premium", {"en": "Premium", "ru": "Премиум", "de": "Premium", "el": "Premium",
+                         "ro": "Premium", "bg": "Премиум", "mo": "Premium", "sr": "Премијум", "tr": "Premium"}),
         ]
         for slug, trans in cats:
             result = await db.execute(select(Category).where(Category.slug == slug))
@@ -69,7 +73,16 @@ async def seed() -> None:
                 cat = Category(slug=slug)
                 db.add(cat)
                 await db.flush()
-                for lang, title in trans.items():
+            # Upsert each translation so re-runs backfill languages added later.
+            for lang, title in trans.items():
+                res = await db.execute(select(CategoryTranslation).where(
+                    CategoryTranslation.category_id == cat.id,
+                    CategoryTranslation.language_code == lang,
+                ))
+                tr = res.scalars().first()
+                if tr:
+                    tr.title = title
+                else:
                     db.add(CategoryTranslation(category_id=cat.id, language_code=lang, title=title))
 
         # Seed tags
