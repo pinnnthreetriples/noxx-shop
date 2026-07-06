@@ -1,10 +1,22 @@
-import { useState, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent, type ReactNode } from 'react'
 import {
   List, Datagrid, TextField, NumberField, BooleanField, EditButton, DeleteButton,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput, SelectField, Create,
   ReferenceInput, ReferenceArrayInput, AutocompleteInput, AutocompleteArrayInput,
   useInput, useNotify,
 } from 'react-admin'
+import { Box, Typography } from '@mui/material'
+
+// Layout helpers: fields side by side instead of one per line
+const Row = ({ children }: { children: ReactNode }) => (
+  <Box sx={{ display: 'flex', gap: 2, width: '100%', '& > *': { flex: 1 } }}>{children}</Box>
+)
+const Grid2 = ({ children }: { children: ReactNode }) => (
+  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 2, width: '100%' }}>{children}</Box>
+)
+const Section = ({ title }: { title: string }) => (
+  <Typography variant="overline" sx={{ color: 'text.secondary', mt: 1, mb: -1, width: '100%' }}>{title}</Typography>
+)
 
 const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const mediaUrl = import.meta.env.VITE_MEDIA_PUBLIC_URL || 'http://localhost:9000'
@@ -66,7 +78,7 @@ const statusChoices = [
 const LANGUAGES = ['en', 'ru', 'es', 'de', 'el', 'ro', 'bg', 'mo', 'sr', 'tr'] as const
 
 const DescriptionInputs = () => (
-  <>
+  <Grid2>
     {LANGUAGES.map((lang) => (
       <TextInput
         key={`description_${lang}`}
@@ -76,18 +88,69 @@ const DescriptionInputs = () => (
         fullWidth
       />
     ))}
-  </>
+  </Grid2>
 )
 
 const TitleInputs = () => (
-  <>
+  <Grid2>
     {LANGUAGES.map((lang) => (
       <TextInput
         key={`title_${lang}`}
         source={`title_${lang}`}
         label={`Название (${lang.toUpperCase()})`}
+        fullWidth
       />
     ))}
+  </Grid2>
+)
+
+const ProductFormFields = ({ create = false }: { create?: boolean }) => (
+  <>
+    <Row>
+      <TextInput source="slug" />
+      <SelectInput source="status" choices={statusChoices} defaultValue={create ? 'draft' : undefined} />
+      <ReferenceInput source="category_id" reference="categories">
+        <AutocompleteInput optionText="slug" />
+      </ReferenceInput>
+    </Row>
+    <Section title="Цена" />
+    <Row>
+      <NumberInput source="price_stars" label="Цена (Stars)" helperText="Пусто или 0 — посчитается из «Цена (USD)» по курсу" />
+      <NumberInput source="usd_price_manual" label="Цена (USD)" helperText=" " />
+      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} defaultValue={create ? 'auto' : undefined} label="Цена в $ на витрине" helperText="Авто — из Stars по курсу" />
+    </Row>
+    <Section title="Медиа" />
+    <Row>
+      <Box>
+        <MediaUploadInput source="cover_url" label="Обложка (изображение)" accept="image/*" />
+        <TextInput source="cover_url" label="Обложка — URL/путь" fullWidth />
+      </Box>
+      <Box>
+        <MediaUploadInput source="preview_video_url" label="Превью (короткое видео)" accept="video/mp4,video/webm,video/quicktime" video />
+        <TextInput source="preview_video_url" label="Превью видео — URL/путь" fullWidth />
+      </Box>
+    </Row>
+    <Section title="Контент и показатели" />
+    <Row>
+      <TextInput source="google_drive_link" />
+      <TextInput source="google_drive_file_id" />
+    </Row>
+    <Row>
+      {!create && <NumberInput source="display_views" />}
+      {!create && <NumberInput source="display_purchases" />}
+      <NumberInput source="trend_score" />
+      <ReferenceArrayInput source="tag_ids" reference="tags">
+        <AutocompleteArrayInput optionText="slug" />
+      </ReferenceArrayInput>
+    </Row>
+    <Row>
+      <BooleanInput source="is_premium" />
+      <BooleanInput source="available_for_subscription" />
+    </Row>
+    <Section title="Название" />
+    <TitleInputs />
+    <Section title="Описание" />
+    <DescriptionInputs />
   </>
 )
 
@@ -110,30 +173,7 @@ export const ProductList = () => (
 export const ProductEdit = () => (
   <Edit>
     <SimpleForm>
-      <TextInput source="slug" />
-      <SelectInput source="status" choices={statusChoices} />
-      <NumberInput source="price_stars" label="Цена (Stars)" helperText="Пусто или 0 — посчитается из «Цена (USD)» по курсу" />
-      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} label="Цена в $ на витрине" helperText="Авто — из Stars по курсу; Вручную — из поля «Цена (USD)»" />
-      <NumberInput source="usd_price_manual" label="Цена (USD)" />
-      <ReferenceInput source="category_id" reference="categories">
-        <AutocompleteInput optionText="slug" />
-      </ReferenceInput>
-      <ReferenceArrayInput source="tag_ids" reference="tags">
-        <AutocompleteArrayInput optionText="slug" />
-      </ReferenceArrayInput>
-      <MediaUploadInput source="cover_url" label="Обложка (изображение)" accept="image/*" />
-      <TextInput source="cover_url" label="Обложка — URL/путь" fullWidth />
-      <MediaUploadInput source="preview_video_url" label="Превью (короткое видео)" accept="video/mp4,video/webm,video/quicktime" video />
-      <TextInput source="preview_video_url" label="Превью видео — URL/путь" fullWidth />
-      <TextInput source="google_drive_link" />
-      <TextInput source="google_drive_file_id" />
-      <NumberInput source="display_views" />
-      <NumberInput source="display_purchases" />
-      <NumberInput source="trend_score" />
-      <BooleanInput source="is_premium" />
-      <BooleanInput source="available_for_subscription" />
-      <TitleInputs />
-      <DescriptionInputs />
+      <ProductFormFields />
     </SimpleForm>
   </Edit>
 )
@@ -141,28 +181,7 @@ export const ProductEdit = () => (
 export const ProductCreate = () => (
   <Create>
     <SimpleForm>
-      <TextInput source="slug" />
-      <SelectInput source="status" choices={statusChoices} defaultValue="draft" />
-      <NumberInput source="price_stars" label="Цена (Stars)" helperText="Пусто или 0 — посчитается из «Цена (USD)» по курсу" />
-      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} defaultValue="auto" label="Цена в $ на витрине" helperText="Авто — из Stars по курсу; Вручную — из поля «Цена (USD)»" />
-      <NumberInput source="usd_price_manual" label="Цена (USD)" />
-      <ReferenceInput source="category_id" reference="categories">
-        <AutocompleteInput optionText="slug" />
-      </ReferenceInput>
-      <ReferenceArrayInput source="tag_ids" reference="tags">
-        <AutocompleteArrayInput optionText="slug" />
-      </ReferenceArrayInput>
-      <MediaUploadInput source="cover_url" label="Обложка (изображение)" accept="image/*" />
-      <TextInput source="cover_url" label="Обложка — URL/путь" fullWidth />
-      <MediaUploadInput source="preview_video_url" label="Превью (короткое видео)" accept="video/mp4,video/webm,video/quicktime" video />
-      <TextInput source="preview_video_url" label="Превью видео — URL/путь" fullWidth />
-      <TextInput source="google_drive_link" />
-      <TextInput source="google_drive_file_id" />
-      <NumberInput source="trend_score" />
-      <BooleanInput source="is_premium" />
-      <BooleanInput source="available_for_subscription" />
-      <TitleInputs />
-      <DescriptionInputs />
+      <ProductFormFields create />
     </SimpleForm>
   </Create>
 )
