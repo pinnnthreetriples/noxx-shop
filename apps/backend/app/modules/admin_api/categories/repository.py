@@ -13,7 +13,12 @@ class CategoryAdminRepository:
     async def list_with_filters(self, f: AdminListFilters) -> Tuple[List[Category], int]:
         stmt = select(Category)
         if f.q:
-            stmt = stmt.where(search_ilike([Category.slug], f.q))
+            # search matches translated titles too, not just the latin slug
+            stmt = (
+                stmt.outerjoin(CategoryTranslation, CategoryTranslation.category_id == Category.id)
+                .where(search_ilike([Category.slug, CategoryTranslation.title], f.q))
+                .distinct()
+            )
         total = await count_total(self.db, stmt)
         stmt = apply_sort(stmt, Category, f.sort_field, f.desc_order)
         stmt = stmt.offset(f.offset).limit(f.limit)
