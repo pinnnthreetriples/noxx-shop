@@ -6,6 +6,7 @@ from app.modules.admin.models import AdminLog
 from app.modules.catalog.models import Product, ProductTag, ProductTranslation
 from app.modules.admin_api.products.repository import ProductAdminRepository
 from app.modules.admin_api.filters import LANGUAGE_CODES, AdminListFilters
+from app.modules.orders.service import OrderService
 
 
 class ProductAdminService:
@@ -40,7 +41,27 @@ class ProductAdminService:
         data["tag_ids"] = [r[0] for r in tag_rows]
         return data
     
+    async def _apply_pricing_rules(self, payload: dict, current: Optional[Product] = None) -> None:
+        """The shop charges Stars; USD is secondary. When Stars is empty but a
+        manual USD price is set, derive Stars from the effective rate — and a
+        published product must never end up costing 0 Stars."""
+        stars = payload.get("price_stars", current.price_stars if current else 0) or 0
+        usd = payload.get("usd_price_manual", current.usd_price_manual if current else None)
+        if stars <= 0 and usd and float(usd) > 0:
+            rate = await OrderService(self.db)._star_rate()
+            stars = max(int(round(float(usd) / rate)), 1)
+            payload["price_stars"] = stars
+        if "status" in payload:
+            status = str(payload["status"])
+        elif current is not None:
+            status = getattr(current.status, "value", str(current.status))
+        else:
+            status = "draft"
+        if status == "published" and stars <= 0:
+            raise ValueError("У опубликованного товара должна быть цена: заполните «Цена (Stars)» или «Цена (USD)»")
+
     async def create(self, admin, payload: dict) -> Product:
+        await self._apply_pricing_rules(payload)
         product = await self.repo.create(
             slug=payload.get("slug", ""),
             status=payload.get("status", "draft"),
@@ -71,6 +92,7 @@ class ProductAdminService:
         product = await self.repo.get_by_id(id)
         if not product:
             return None
+        await self._apply_pricing_rules(payload, product)
         await self.repo.update(product, {k: v for k, v in payload.items() if not k.startswith(("title_", "description_")) and hasattr(product, k) and k != "id"})
         for lang in LANGUAGE_CODES:
             title = payload.get(f"title_{lang}")

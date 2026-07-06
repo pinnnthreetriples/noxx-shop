@@ -45,7 +45,10 @@ async def create_product(
     db: AsyncSession = Depends(get_db),
 ):
     service = ProductAdminService(db)
-    return await service.create(admin, payload)
+    try:
+        return await service.create(admin, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.put("/products/{id}")
@@ -56,7 +59,10 @@ async def update_product(
     db: AsyncSession = Depends(get_db),
 ):
     service = ProductAdminService(db)
-    product = await service.update(admin, id, payload)
+    try:
+        product = await service.update(admin, id, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
