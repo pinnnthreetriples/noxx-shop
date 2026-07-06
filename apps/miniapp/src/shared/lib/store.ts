@@ -60,7 +60,7 @@ export const useAppStore = create<AppState>()(
       setPayMethod: (m) => set({ payMethod: m }),
     }),
     {
-      name: 'noxx-store-v2',
+      name: 'noxx-store-v3',
       partialize: (state) => ({ language: state.language, langChosen: state.langChosen, ageConfirmed: state.ageConfirmed, cartItems: state.cartItems, payMethod: state.payMethod }),
     }
   )
