@@ -178,7 +178,7 @@ export function useNoxx() {
   const checkoutMut = useMutation({
     mutationFn: async () =>
       (await api.post<{ order_id: number; invoice_url: string; provider?: string }>('/checkout/create', {
-        product_ids: cartItems.map((c) => c.productId),
+        product_ids: cartRecs.map((r) => r.id),
         promo_code: promoApplied || undefined,
         provider: payCrypto ? 'orbchain' : 'telegram',
       })).data,
@@ -281,6 +281,13 @@ export function useNoxx() {
   }
 
   const cartRecs = cartItems.map((c) => recs.find((r) => r.id === c.productId)).filter(Boolean) as Rec[]
+
+  // A deleted product must not haunt the persisted cart: its stored id renders
+  // nothing yet kept Checkout and the fab badge alive. Purge once the catalog is in.
+  React.useEffect(() => {
+    if (!productsQ.isSuccess) return
+    cartItems.filter((c) => !recs.some((r) => r.id === c.productId)).forEach((c) => removeFromCart(c.productId))
+  }, [productsQ.isSuccess, recs, cartItems, removeFromCart])
   const favRecs = recs.filter((r) => favSet.has(r.id))
 
   // purchases: one library row per bought product; "Downloaded" once a delivery link exists
@@ -519,8 +526,10 @@ export function useNoxx() {
     // detail
     detail, detailUsd: dRec.usd,
     // cart
-    cartItems: cartRecs.map(vmVideo), cartCount: cartItems.length, hasCart: cartItems.length > 0,
-    cartEmpty: cartItems.length === 0, cartTotalFmt: String(cartTotalStars), cartTotalUsd: '$' + cartTotalUsdN.toFixed(2),
+    // counts follow cartRecs (renderable items), not the raw store: a stored id
+    // whose product was deleted must not keep Checkout alive on an empty-looking cart
+    cartItems: cartRecs.map(vmVideo), cartCount: cartRecs.length, hasCart: cartRecs.length > 0,
+    cartEmpty: cartRecs.length === 0, cartTotalFmt: String(cartTotalStars), cartTotalUsd: '$' + cartTotalUsdN.toFixed(2),
     // checkout — totals come from the backend estimate so the UI always matches the invoice
     coItems: cartRecs.map(vmVideo),
     coTotalFmt: String(coToPayStars), coTotalUsd: fmtUsd(coToPayStars * starRate),
