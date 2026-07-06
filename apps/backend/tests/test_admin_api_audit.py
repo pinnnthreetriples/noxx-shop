@@ -77,6 +77,30 @@ async def test_category_get_one(client):
     assert resp.json()["slug"] == "audit-cat"
 
 
+async def test_category_delete_is_real_and_detaches_products(client, db_session):
+    """Deleting a category must remove the row (not just flag it), drop its
+    translations, and detach any products (category_id -> NULL), not orphan them."""
+    from sqlalchemy import select
+    from app.modules.catalog.models import CategoryTranslation
+    db_session.add(Category(id=901, slug="doomed"))
+    db_session.add(CategoryTranslation(category_id=901, language_code="en", title="Doomed"))
+    db_session.add(Product(id=901, slug="in-doomed", status="published", price_stars=10, category_id=901))
+    await db_session.commit()
+
+    resp = await client.delete("/admin/categories/901")
+    assert resp.status_code == 200, resp.text[:200]
+    assert resp.json() == {"id": 901}
+
+    db_session.expire_all()
+    assert await db_session.get(Category, 901) is None
+    trs = (await db_session.execute(
+        select(CategoryTranslation).where(CategoryTranslation.category_id == 901)
+    )).scalars().all()
+    assert trs == []
+    product = await db_session.get(Product, 901)
+    assert product is not None and product.category_id is None
+
+
 async def test_settings_self_heal_when_row_missing(client, db_session):
     """Prod regression: the settings row vanished after a partial DB restore and
     every settings read 404-looped the admin page. Reads must recreate it."""
