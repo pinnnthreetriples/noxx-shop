@@ -1,11 +1,9 @@
-"""Auto-translate service: fills every UI language, keeps the source verbatim,
-and fails loudly (not silently) when misconfigured. Gemini HTTP is mocked."""
-import json
-
+"""Auto-translate service (MyMemory): fills every UI language, keeps the source
+verbatim, drops rate-limit notices, and fails loudly when nothing comes back.
+The MyMemory HTTP GET is mocked."""
 import httpx
 import pytest
 
-from app.core.config import settings
 from app.modules.admin_api.translate.service import LANGUAGES, TranslationError, translate_to_all
 
 
@@ -20,41 +18,41 @@ class _FakeResp:
         return self._payload
 
 
-def _gemini(mapping):
-    return {"candidates": [{"content": {"parts": [{"text": json.dumps(mapping)}]}}]}
+def _ok(text):
+    return _FakeResp({"responseStatus": 200, "responseData": {"translatedText": text}})
 
 
 async def test_fills_all_languages(monkeypatch):
-    monkeypatch.setattr(settings, "gemini_api_key", "test-key")
-    mapping = {c: f"{c}-text" for c in LANGUAGES if c != "ru"}
+    async def fake_get(self, url, params=None):
+        # echo the target language so we can assert per-language wiring
+        tgt = params["langpair"].split("|")[1]
+        return _ok(f"[{tgt}]")
 
-    async def fake_post(self, url, **kwargs):
-        return _FakeResp(_gemini(mapping))
-
-    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
-
-    out = await translate_to_all("Привет", "ru")
-    assert out["ru"] == "Привет"          # source kept exactly
-    assert set(out) == set(LANGUAGES)      # nothing missing
-    assert out["en"] == "en-text"
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+    out = await translate_to_all("Популярное", "ru")
+    assert out["ru"] == "Популярное"       # source kept exactly
+    assert set(out) == set(LANGUAGES)       # nothing missing
+    assert out["en"] == "[en]"
+    assert out["mo"] == "[ro]"              # Moldovan routed through Romanian
 
 
 async def test_empty_text_is_noop():
     assert await translate_to_all("   ", "ru") == {}
 
 
-async def test_missing_key_raises(monkeypatch):
-    monkeypatch.setattr(settings, "gemini_api_key", "")
+async def test_rate_limit_notice_is_dropped(monkeypatch):
+    async def fake_get(self, url, params=None):
+        return _ok("MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS FOR TODAY")
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
     with pytest.raises(TranslationError):
-        await translate_to_all("hi", "en")
+        await translate_to_all("hi", "en")   # every target dropped -> only source -> error
 
 
 async def test_unknown_source_defaults_to_en(monkeypatch):
-    monkeypatch.setattr(settings, "gemini_api_key", "test-key")
+    async def fake_get(self, url, params=None):
+        return _ok("x")
 
-    async def fake_post(self, url, **kwargs):
-        return _FakeResp(_gemini({c: c for c in LANGUAGES if c != "en"}))
-
-    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
-    out = await translate_to_all("hello", "zz")  # zz not supported -> treated as en
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+    out = await translate_to_all("hello", "zz")  # zz unsupported -> treated as en
     assert out["en"] == "hello"

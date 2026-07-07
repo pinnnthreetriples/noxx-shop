@@ -63,8 +63,7 @@ services:
       ORBCHAIN_API_BASE: ${ORBCHAIN_API_BASE:-https://orbchain.io}
       ORBCHAIN_WEBHOOK_SECRET: ${ORBCHAIN_WEBHOOK_SECRET}
       STAR_USD_RATE: ${STAR_USD_RATE:-0.02}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      MYMEMORY_EMAIL: ${MYMEMORY_EMAIL:-}
     ports:
       - "8000:8000"
     depends_on:

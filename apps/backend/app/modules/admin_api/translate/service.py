@@ -1,10 +1,11 @@
-"""Admin content auto-translation via Gemini (Google AI).
+"""Admin content auto-translation via MyMemory (free, keyless, no billing).
 
 The owner writes a title/description in one language; this fills the rest.
-The API key stays server-side (settings.gemini_api_key) — never in the client.
+MyMemory needs no API key. An optional contact email (settings.mymemory_email)
+raises the free daily limit from ~5k to ~50k words/day.
 """
-import json
-from typing import Dict
+import asyncio
+from typing import Dict, List, Optional
 
 import httpx
 
@@ -23,9 +24,33 @@ LANGUAGES: Dict[str, str] = {
     "tr": "Turkish",
 }
 
+# MyMemory codes. Moldovan isn't a MyMemory language — it's Romanian, so map it.
+_MM = {"en": "en", "ru": "ru", "de": "de", "el": "el", "ro": "ro",
+       "bg": "bg", "mo": "ro", "sr": "sr", "tr": "tr"}
+
+_ENDPOINT = "https://api.mymemory.translated.net/get"
+
 
 class TranslationError(RuntimeError):
-    """Auto-translation could not be produced (no key, upstream error, bad output)."""
+    """Auto-translation could not be produced (upstream error, quota, bad output)."""
+
+
+async def _one(client: httpx.AsyncClient, text: str, src: str, tgt: str, email: Optional[str]) -> Optional[str]:
+    params = {"q": text, "langpair": f"{_MM[src]}|{_MM[tgt]}"}
+    if email:
+        params["de"] = email
+    resp = await client.get(_ENDPOINT, params=params)
+    resp.raise_for_status()
+    data = resp.json()
+    if str(data.get("responseStatus")) != "200":
+        return None
+    out = (data.get("responseData") or {}).get("translatedText")
+    if not isinstance(out, str) or not out.strip():
+        return None
+    # MyMemory returns its rate-limit notice in this field with status 200 sometimes
+    if "MYMEMORY WARNING" in out.upper():
+        return None
+    return out.strip()
 
 
 async def translate_to_all(text: str, source: str) -> Dict[str, str]:
@@ -35,42 +60,18 @@ async def translate_to_all(text: str, source: str) -> Dict[str, str]:
         return {}
     if source not in LANGUAGES:
         source = "en"
-    if not settings.gemini_api_key:
-        raise TranslationError("Gemini API key is not configured")
-
-    targets = {c: n for c, n in LANGUAGES.items() if c != source}
-    prompt = (
-        "You translate short e-commerce catalog labels and descriptions. "
-        f"The text below is in {LANGUAGES[source]}. Translate it into each of these "
-        "languages, keeping it natural and concise (a store category/product label or "
-        "its description). Return ONLY a JSON object mapping the language code to the "
-        "translation — no commentary.\n"
-        f"Language codes: {json.dumps(targets, ensure_ascii=False)}\n"
-        f"Text: {text}"
-    )
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{settings.gemini_model}:generateContent"
-    )
+    targets: List[str] = [c for c in LANGUAGES if c != source]
+    email = settings.mymemory_email or None
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(
-                url,
-                params={"key": settings.gemini_api_key},
-                json={
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
-                },
-            )
-        resp.raise_for_status()
-        raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(raw)
-    except (httpx.HTTPError, KeyError, IndexError, ValueError) as e:
+            results = await asyncio.gather(*[_one(client, text, source, t, email) for t in targets])
+    except (httpx.HTTPError, ValueError) as e:  # ValueError covers a malformed JSON body
         raise TranslationError(str(e)) from e
 
-    result = {source: text}
-    for code in LANGUAGES:
-        value = parsed.get(code)
-        if code != source and isinstance(value, str) and value.strip():
-            result[code] = value.strip()
-    return result
+    out = {source: text}
+    for tgt, value in zip(targets, results, strict=True):
+        if value:
+            out[tgt] = value
+    if len(out) == 1:
+        raise TranslationError("No translations returned (daily limit reached?)")
+    return out
