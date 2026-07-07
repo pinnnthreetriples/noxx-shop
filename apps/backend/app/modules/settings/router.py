@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.modules.admin.schemas import SettingsOut
 from app.modules.admin.schemas import LanguageOut
+from app.modules.pricing import gross_stars
 from app.models import Setting
 
 router = APIRouter(prefix="")
@@ -27,7 +28,14 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
         db.add(setting)
         await db.commit()
         await db.refresh(setting)
-    return setting
+    out = SettingsOut.model_validate(setting)
+    if setting.withdrawal_commission_enabled:
+        # buyer-facing subscription prices carry the same commission gross-up as products
+        pct = setting.withdrawal_commission_percent
+        out.sub_price_week_stars = gross_stars(out.sub_price_week_stars, True, pct)
+        out.sub_price_month_stars = gross_stars(out.sub_price_month_stars, True, pct)
+        out.sub_price_year_stars = gross_stars(out.sub_price_year_stars, True, pct)
+    return out
 
 
 @router.get("/languages", response_model=List[LanguageOut])

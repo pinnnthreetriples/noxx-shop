@@ -32,7 +32,8 @@ def test_storefront_usd_ignores_stale_manual_in_auto_mode():
     leftover manual value that could contradict the charged stars price."""
     from app.modules.catalog.models import Product
     from app.modules.catalog.service import _approx_usd
+    off = (False, 35)  # commission disabled -> no gross-up in these display checks
     auto = Product(price_stars=500, usd_price_mode="auto", usd_price_manual=7)
-    assert _approx_usd(auto) is None
+    assert _approx_usd(auto, off) is None
     manual = Product(price_stars=500, usd_price_mode="manual", usd_price_manual=10)
-    assert _approx_usd(manual) == 10.0
+    assert _approx_usd(manual, off) == 10.0

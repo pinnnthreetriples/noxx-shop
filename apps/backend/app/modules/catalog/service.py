@@ -1,9 +1,10 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.orm import selectinload
 from app.models import Product, ProductTranslation, ProductTag, Category, Tag
 from app.modules.catalog.schemas import ProductListItem, ProductDetail, CategoryOut, TagOut
+from app.modules.pricing import gross_stars, gross_usd, load_commission
 from app.core.exceptions import NotFoundException
 
 # Eager-load every relationship the serializers touch (translations, category, tags)
@@ -56,35 +57,35 @@ def _tags_out(product: Product, lang: str) -> List[TagOut]:
     return out
 
 
-def _approx_usd(product: Product) -> Optional[float]:
-    """Storefront $ hint. Manual mode shows the set USD; auto mode returns None so
-    the client derives it from stars × rate — otherwise a stale manual value could
-    contradict the stars price the buyer is actually charged."""
+def _approx_usd(product: Product, commission: Tuple[bool, int]) -> Optional[float]:
+    """Storefront $ hint. Manual mode shows the set USD (grossed for commission when
+    on); auto mode returns None so the client derives it from stars × rate —
+    otherwise a stale manual value could contradict the stars price actually charged."""
     if product.usd_price_mode == "manual" and product.usd_price_manual:
-        return float(product.usd_price_manual)
+        return gross_usd(float(product.usd_price_manual), *commission)
     return None
 
 
-def _to_list_item(product: Product, lang: str) -> ProductListItem:
+def _to_list_item(product: Product, lang: str, commission: Tuple[bool, int]) -> ProductListItem:
     return ProductListItem(
         id=product.id, slug=product.slug, title=_product_title(product, lang),
         category=_category_out(product, lang), tags=_tags_out(product, lang),
         display_views=product.display_views, display_purchases=product.display_purchases,
         cover_url=product.cover_url, is_premium=product.is_premium,
-        price_stars=product.price_stars,
-        approx_usd=_approx_usd(product),
+        price_stars=gross_stars(product.price_stars, *commission),
+        approx_usd=_approx_usd(product, commission),
     )
 
 
-def _to_detail(product: Product, lang: str) -> ProductDetail:
+def _to_detail(product: Product, lang: str, commission: Tuple[bool, int]) -> ProductDetail:
     return ProductDetail(
         id=product.id, slug=product.slug, title=_product_title(product, lang),
         description=_product_desc(product, lang),
         category=_category_out(product, lang), tags=_tags_out(product, lang),
         display_views=product.display_views, display_purchases=product.display_purchases,
         cover_url=product.cover_url, preview_video_url=product.preview_video_url,
-        price_stars=product.price_stars,
-        approx_usd=_approx_usd(product),
+        price_stars=gross_stars(product.price_stars, *commission),
+        approx_usd=_approx_usd(product, commission),
         is_premium=product.is_premium,
     )
 
@@ -126,7 +127,8 @@ async def list_products(
         stmt = stmt.where(Product.id.in_(sub))
     result = await db.execute(stmt)
     products = result.scalars().all()
-    return [_to_list_item(p, lang) for p in products]
+    commission = await load_commission(db)
+    return [_to_list_item(p, lang, commission) for p in products]
 
 
 async def get_product_by_slug(db: AsyncSession, user, slug: str) -> ProductDetail:
@@ -137,4 +139,4 @@ async def get_product_by_slug(db: AsyncSession, user, slug: str) -> ProductDetai
     product = result.scalars().first()
     if not product:
         raise NotFoundException("Product not found")
-    return _to_detail(product, lang)
+    return _to_detail(product, lang, await load_commission(db))
