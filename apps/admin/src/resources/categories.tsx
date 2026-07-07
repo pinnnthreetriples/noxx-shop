@@ -2,6 +2,7 @@ import {
   List, Datagrid, TextField, EditButton, DeleteButton,
   Edit, SimpleForm, TextInput, Create, SelectInput, SelectField,
 } from 'react-admin'
+import { TranslatableInput } from '../components/TranslatableInput'
 
 const statusChoices = [
   { id: 'draft', name: 'Черновик' },
@@ -9,16 +10,6 @@ const statusChoices = [
   { id: 'hidden', name: 'Скрыт' },
   { id: 'deleted', name: 'Удалён' },
 ]
-
-const LANGUAGES = ['en', 'ru', 'es', 'de', 'el', 'ro', 'bg', 'mo', 'sr', 'tr'] as const
-
-const TitleInputs = () => (
-  <>
-    {LANGUAGES.map((lang) => (
-      <TextInput key={`title_${lang}`} source={`title_${lang}`} label={`Название (${lang.toUpperCase()})`} />
-    ))}
-  </>
-)
 
 export const CategoryList = () => (
   <List>
@@ -37,7 +28,7 @@ export const CategoryEdit = () => (
     <SimpleForm>
       <TextInput source="slug" />
       <SelectInput source="status" choices={statusChoices} />
-      <TitleInputs />
+      <TranslatableInput base="title" label="Название" />
     </SimpleForm>
   </Edit>
 )
@@ -47,7 +38,7 @@ export const CategoryCreate = () => (
     <SimpleForm>
       <TextInput source="slug" />
       <SelectInput source="status" choices={statusChoices} defaultValue="published" />
-      <TitleInputs />
+      <TranslatableInput base="title" label="Название" />
     </SimpleForm>
   </Create>
 )

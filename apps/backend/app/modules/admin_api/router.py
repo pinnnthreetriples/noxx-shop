@@ -19,6 +19,7 @@ from app.modules.admin_api.import_.router import router as import_router
 from app.modules.admin_api.analytics.router import router as analytics_router
 from app.modules.admin_api.google_drive.router import router as google_drive_router
 from app.modules.admin_api.uploads.router import router as uploads_router
+from app.modules.admin_api.translate.router import router as translate_router
 
 
 # auth_router подключается БЕЗ admin-dep (login не требует авторизации)
@@ -40,6 +41,7 @@ admin_protected.include_router(import_router)
 admin_protected.include_router(analytics_router)
 admin_protected.include_router(google_drive_router)
 admin_protected.include_router(uploads_router)
+admin_protected.include_router(translate_router)
 
 
 # Top-level router (без prefix) — auth роутер подключается отдельно в main.py

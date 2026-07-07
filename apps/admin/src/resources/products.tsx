@@ -7,13 +7,11 @@ import {
   useInput, useNotify,
 } from 'react-admin'
 import { Box, Typography } from '@mui/material'
+import { TranslatableInput } from '../components/TranslatableInput'
 
 // Layout helpers: fields side by side instead of one per line
 const Row = ({ children }: { children: ReactNode }) => (
   <Box sx={{ display: 'flex', gap: 2, width: '100%', '& > *': { flex: 1 } }}>{children}</Box>
-)
-const Grid2 = ({ children }: { children: ReactNode }) => (
-  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 2, width: '100%' }}>{children}</Box>
 )
 const Section = ({ title }: { title: string }) => (
   <Typography variant="overline" sx={{ color: 'text.secondary', mt: 1, mb: -1, width: '100%' }}>{title}</Typography>
@@ -76,35 +74,6 @@ const statusChoices = [
   { id: 'deleted', name: 'Удалён' },
 ]
 
-const LANGUAGES = ['en', 'ru', 'es', 'de', 'el', 'ro', 'bg', 'mo', 'sr', 'tr'] as const
-
-const DescriptionInputs = () => (
-  <Grid2>
-    {LANGUAGES.map((lang) => (
-      <TextInput
-        key={`description_${lang}`}
-        source={`description_${lang}`}
-        label={`Описание (${lang.toUpperCase()})`}
-        multiline
-        fullWidth
-      />
-    ))}
-  </Grid2>
-)
-
-const TitleInputs = () => (
-  <Grid2>
-    {LANGUAGES.map((lang) => (
-      <TextInput
-        key={`title_${lang}`}
-        source={`title_${lang}`}
-        label={`Название (${lang.toUpperCase()})`}
-        fullWidth
-      />
-    ))}
-  </Grid2>
-)
-
 const ProductFormFields = ({ create = false }: { create?: boolean }) => (
   <>
     <Row>
@@ -148,9 +117,9 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
       <BooleanInput source="is_premium" label="Премиум — подписчики получают бесплатно" />
     </Row>
     <Section title="Название" />
-    <TitleInputs />
+    <TranslatableInput base="title" label="Название" />
     <Section title="Описание" />
-    <DescriptionInputs />
+    <TranslatableInput base="description" label="Описание" multiline />
   </>
 )
 
