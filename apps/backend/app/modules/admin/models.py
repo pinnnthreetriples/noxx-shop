@@ -46,6 +46,9 @@ class Setting(Base):
     discount_bulk_min_items: Mapped[int] = mapped_column(Integer, default=20)
     discount_loyalty_percent: Mapped[int] = mapped_column(Integer, default=30)
     discount_loyalty_min_items: Mapped[int] = mapped_column(Integer, default=20)
+    # Compensate Telegram's ~35% withdrawal cut by grossing up buyer-facing prices
+    withdrawal_commission_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    withdrawal_commission_percent: Mapped[int] = mapped_column(Integer, default=35)
     # Premium subscription prices in Stars (durations are fixed: 7/30/365 days)
     sub_price_week_stars: Mapped[int] = mapped_column(Integer, default=99)
     sub_price_month_stars: Mapped[int] = mapped_column(Integer, default=299)

@@ -30,6 +30,7 @@ from app.modules.orders.repository import (
     BotMessageMapRepository,
 )
 from app.modules.catalog.repository import ProductRepository
+from app.modules.pricing import gross_stars, load_commission
 from app.modules.users.repository import UserRepository
 from app.modules.promos.repository import PromoCodeRepository, PromoRedemptionRepository
 from app.modules.orders.schemas import (
@@ -156,7 +157,8 @@ class OrderService:
                 promo_code=None,
             )
         products = await self.product_repo.list_published_by_ids(product_ids)
-        total = sum(p.price_stars for p in products)
+        commission = await load_commission(self.db)
+        total = sum(gross_stars(p.price_stars, *commission) for p in products)
         dinfo = await self.calculate_discounts(user, product_ids, promo_code, total)
         to_pay = int(total * (100 - dinfo["final_discount_percent"]) / 100)
         return CartEstimateOut(
@@ -187,7 +189,9 @@ class OrderService:
         if any((p.price_stars or 0) <= 0 for p in products):
             raise ValueError("A product in the cart has no price set — contact support")
 
-        total = sum(p.price_stars for p in products)
+        commission = await load_commission(self.db)
+        priced = [(p, gross_stars(p.price_stars, *commission)) for p in products]
+        total = sum(stars for _, stars in priced)
         dinfo = await self.calculate_discounts(user, product_ids, promo_code, total)
         to_pay = max(int(total * (100 - dinfo["final_discount_percent"]) / 100), 1)
 
@@ -206,8 +210,9 @@ class OrderService:
             paid_stars=to_pay,
             promo_code_id=promo_code_id,
         )
-        for p in products:
-            await self.order_repo.add_item(order.id, p.id, 1, p.price_stars)
+        for p, stars in priced:
+            # snapshot the grossed unit price — this records what the buyer paid
+            await self.order_repo.add_item(order.id, p.id, 1, stars)
 
         await self.db.commit()
         await self.db.refresh(order)
@@ -228,6 +233,9 @@ class OrderService:
         stars = (getattr(s, f"sub_price_{plan}_stars", None) if s else None) or self.SUB_PRICE_DEFAULTS[plan]
         if stars <= 0:
             raise ValueError("Subscription price is not configured")
+        # same withdrawal-commission gross-up as products, so the buyer covers it
+        if s and s.withdrawal_commission_enabled:
+            stars = gross_stars(stars, True, s.withdrawal_commission_percent)
         order = await self.order_repo.create(
             user_id=user.id,
             total_stars=stars,

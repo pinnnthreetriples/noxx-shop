@@ -17,10 +17,28 @@ from app.modules.internal_api.router import router as internal_api_router
 from app.modules.payments_orbchain.router import router as orbchain_router
 
 
+async def _add_missing_columns(conn):
+    """create_all builds new tables but never ALTERs existing ones, and this app
+    has no live Alembic. Add columns shipped after the prod DB was created, so a
+    new Setting field can't 500 the whole settings page. Postgres-only; sqlite
+    test DBs are always fresh from create_all. Idempotent (ADD COLUMN IF NOT EXISTS)."""
+    if conn.dialect.name != "postgresql":
+        return
+    await conn.exec_driver_sql(
+        "ALTER TABLE settings ADD COLUMN IF NOT EXISTS "
+        "withdrawal_commission_enabled BOOLEAN NOT NULL DEFAULT false"
+    )
+    await conn.exec_driver_sql(
+        "ALTER TABLE settings ADD COLUMN IF NOT EXISTS "
+        "withdrawal_commission_percent INTEGER NOT NULL DEFAULT 35"
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await _add_missing_columns(conn)
     yield
     await engine.dispose()
 

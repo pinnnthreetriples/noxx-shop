@@ -23,6 +23,16 @@ const SettingsPage = () => (
         ]}
       />
       <NumberInput source="manual_stars_to_usd_rate" label="Курс Stars → USD (вручную)" />
+      <BooleanInput
+        source="withdrawal_commission_enabled"
+        label="Компенсировать комиссию Telegram при выводе"
+        helperText="Звёзды при выводе стоят примерно на 35% дешевле. Включи — и покупатель заплатит больше на эту комиссию, а тебе придёт твоя базовая цена (500⭐ → 770⭐)."
+      />
+      <NumberInput
+        source="withdrawal_commission_percent"
+        label="Комиссия при выводе (%)"
+        helperText="Обычно ~35. Цена для покупателя = базовая ÷ (1 − процент/100)."
+      />
       <NumberInput source="max_discount_percent" label="Макс. скидка (%)" />
       <NumberInput source="discount_first_purchase_percent" label="Скидка на первую покупку (%)" />
       <NumberInput source="discount_bulk_percent" label="Скидка за крупный заказ (%)" />
