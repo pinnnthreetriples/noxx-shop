@@ -45,7 +45,8 @@ def search_ilike(fields: list, q: str):
     return or_(*[f.ilike(like) for f in fields])
 
 
-LANGUAGE_CODES = ["en", "ru", "es", "de", "el", "ro", "bg", "mo", "sr", "tr"]
+# Matches the miniapp language switcher (no `es` — it isn't a selectable UI language)
+LANGUAGE_CODES = ["en", "ru", "de", "el", "ro", "bg", "mo", "sr", "tr"]
 
 
 def apply_updates(obj, fields: dict) -> None:

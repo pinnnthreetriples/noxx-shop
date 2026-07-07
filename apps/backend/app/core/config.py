@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # 1 in-app "star" of price ≈ this many USD when invoicing crypto
     star_usd_rate: float = 0.02
 
+    # Gemini (Google AI) — admin content auto-translation. Key stays server-side.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
