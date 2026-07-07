@@ -65,7 +65,7 @@ async def translate_to_all(text: str, source: str) -> Dict[str, str]:
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             results = await asyncio.gather(*[_one(client, text, source, t, email) for t in targets])
-    except httpx.HTTPError as e:
+    except (httpx.HTTPError, ValueError) as e:  # ValueError covers a malformed JSON body
         raise TranslationError(str(e)) from e
 
     out = {source: text}
