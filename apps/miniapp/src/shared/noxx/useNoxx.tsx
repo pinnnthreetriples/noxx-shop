@@ -60,6 +60,13 @@ interface Rec {
 
 function toRec(p: ProductListItem & { description?: string }, rate: number): Rec {
   const tags = p.tags || []
+  // Match New/Popular/Premium by slug OR localized title, across category and tags:
+  // admins may rename a category (slug stays behind) or attach these as tags, so a
+  // slug-only check silently misses them and the chip falls back to flat grey text.
+  const norm = (s?: string) => (s || '').trim().toLowerCase()
+  const hasKind = (kind: string) =>
+    norm(p.category?.slug) === kind || norm(p.category?.title) === kind ||
+    tags.some((t) => norm(t.slug) === kind || norm(t.title) === kind)
   return {
     id: p.id,
     slug: p.slug,
@@ -74,9 +81,9 @@ function toRec(p: ProductListItem & { description?: string }, rate: number): Rec
     usd: fmtUsd(p.approx_usd ?? p.price_stars * rate),
     discount: 0,
     premium: p.is_premium,
-    badge: p.is_premium ? 'Premium'
-      : p.category?.slug === 'new' || tags.some((t) => t.slug === 'new') ? 'New'
-      : p.category?.slug === 'popular' ? 'Popular' : '',
+    badge: p.is_premium || hasKind('premium') ? 'Premium'
+      : hasKind('new') ? 'New'
+      : hasKind('popular') ? 'Popular' : '',
     sold: p.display_purchases,
     desc: p.description ?? '',
     status: 'available',
@@ -238,7 +245,7 @@ export function useNoxx() {
   // Support ticket: lands in the admin panel; the bot pings admins about it.
   const supportMut = useMutation({
     mutationFn: async (p: { topic: string; message: string }) =>
-      (await api.post('/support/tickets', p)).data,
+      (await api.post<{ id: number }>('/support/tickets', p)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['support-tickets'] }),
   })
 
@@ -309,7 +316,7 @@ export function useNoxx() {
       stars: rec.stars, priceFmt: String(rec.stars), usd: rec.usd, soldFmt: fmtNum(rec.sold),
       premium: rec.premium, discount: rec.discount > 0 ? ('−' + rec.discount + '%') : '', hasBadge: !!rec.badge, badge: rec.badge, badgeStyle: { display: 'inline-block', color: rec.badge === 'Premium' ? '#ff9ecb' : rec.badge === 'Popular' ? '#ffc36e' : '#8fe8cc', fontSize: '11px', fontWeight: 700 },
       // card subtitle: hide the category when the colored badge already says the same
-      cardSub: rec.badge && rec.catSlug === rec.badge.toLowerCase() ? '' : rec.tagline,
+      cardSub: rec.badge && rec.tagline.trim().toLowerCase() === rec.badge.toLowerCase() ? '' : rec.tagline,
       inCart, notInCart: !inCart,
       onOpen: () => { if (rec.slug) nav('/product/' + rec.slug) },
       // Buttons live inside the card, whose own onClick opens the product —
@@ -558,7 +565,11 @@ export function useNoxx() {
     goSuccessPurch: () => nav('/purchases'), goPurchases: () => nav('/purchases'), goProfile: () => nav('/profile'), backProfile: () => nav('/profile'),
     goCheckout: () => nav('/checkout'), checkoutBack: () => nav('/cart'), continueShop: () => nav('/catalog'),
     goSupport: () => nav('/support'), goTerms: () => nav('/terms'), goPayments: () => nav('/payment-history'),
-    goGate: () => nav('/age-confirm'), detailBack: () => nav(-1),
+    goGate: () => nav('/age-confirm'),
+    // Deep-linked opens (the bot's "View" button lands straight on /product/:slug)
+    // have no history entry, so nav(-1) is a no-op that traps the user in the card —
+    // fall back to Home when there's nothing to go back to.
+    detailBack: () => (loc.key === 'default' ? nav('/') : nav(-1)),
     enter: () => {
       if (gateChecked) {
         setAgeConfirmed(true)
