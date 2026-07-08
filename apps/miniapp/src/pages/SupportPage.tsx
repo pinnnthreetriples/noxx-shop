@@ -3,12 +3,18 @@ import { useTranslation } from 'react-i18next'
 import * as NoxxVM from '@/shared/noxx/useNoxx'
 import type { SupportTicket } from '@/shared/noxx/useNoxx'
 
-// Backend SupportTopic enum names -> display labels
+// Form topic chips: value sent to the backend -> i18n key
 const TOPICS = [
-  { value: 'payment', label: 'Payment issue' },
-  { value: 'download', label: 'Download issue' },
-  { value: 'other', label: 'Other' },
+  { value: 'payment', key: 'supportTopicPayment' },
+  { value: 'download', key: 'supportTopicDownload' },
+  { value: 'other', key: 'supportTopicOther' },
 ]
+// A ticket's topic arrives as the backend enum value ("Payment issue") -> i18n key
+const TOPIC_KEY: Record<string, string> = {
+  'Payment issue': 'supportTopicPayment',
+  'Download issue': 'supportTopicDownload',
+  Other: 'supportTopicOther',
+}
 
 const STATUS_STYLE: Record<string, { key: string; color: string }> = {
   open: { key: 'supportStatusOpen', color: '#ff8ec2' },
@@ -95,7 +101,7 @@ export default function SupportPage() {
           <div key={tk.id} style={{"borderRadius": "16px", "background": "rgba(255,255,255,.03)", "border": "1px solid rgba(255,255,255,.06)", "marginBottom": "14px", "overflow": "hidden"}}>
             <div onClick={() => toggleTicket(tk.id)} style={{"display": "flex", "alignItems": "center", "gap": "12px", "padding": "15px 16px", "cursor": "pointer"}}>
               <div style={{"flex": "1", "minWidth": 0}}>
-                <div style={{"fontSize": "15px", "fontWeight": "600", "color": "#fff", "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"}}>{tk.topic}</div>
+                <div style={{"fontSize": "15px", "fontWeight": "600", "color": "#fff", "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"}}>{TOPIC_KEY[tk.topic] ? t(TOPIC_KEY[tk.topic]) : tk.topic}</div>
                 <div style={{"marginTop": "3px", "fontSize": "12px", "fontWeight": 600, "color": st.color}}>{st.key ? t(st.key) : tk.status}</div>
               </div>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6a616b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{"flex": "none", "transform": isOpen ? 'rotate(90deg)' : 'none', "transition": "transform .25s"}}><path d="M9 6l6 6-6 6" /></svg>
@@ -118,7 +124,7 @@ export default function SupportPage() {
                 <input value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendReply(tk.id) } }} placeholder={t('supportReplyPlaceholder')} style={{"flex": "1", "padding": "12px 14px", "borderRadius": "12px", "border": "1px solid rgba(255,255,255,.1)", "background": "rgba(255,255,255,.04)", "color": "#fff", "fontSize": "15px", "fontFamily": "inherit", "outline": "none"}} />
                 <button onClick={() => sendReply(tk.id)} disabled={replyBusy || !replyText.trim()} style={{"flex": "none", "width": "46px", "height": "46px", "border": "none", "borderRadius": "12px", "cursor": "pointer", "display": "flex", "alignItems": "center", "justifyContent": "center", "background": "linear-gradient(100deg,#d6246e,#ec5690)", "opacity": replyBusy || !replyText.trim() ? 0.5 : 1}} aria-label={t('send')}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" /></svg></button>
               </div>
-              {replyErr && (<div style={{"marginTop": "8px", "fontSize": "13px", "color": "#ff7a93"}}>Something went wrong. Please try again.</div>)}
+              {replyErr && (<div style={{"marginTop": "8px", "fontSize": "13px", "color": "#ff7a93"}}>{t('supportSendError')}</div>)}
               </>)}
             </div>
             )}
@@ -134,11 +140,11 @@ export default function SupportPage() {
         <div style={{"borderRadius": "16px", "background": "rgba(255,255,255,.03)", "border": "1px solid rgba(255,255,255,.06)", "padding": "18px"}}>
           <div style={{"display": "flex", "gap": "8px", "flexWrap": "wrap", "marginBottom": "14px"}}>
             {TOPICS.map((tp) => (
-              <div key={tp.value} onClick={() => setTopic(tp.value)} style={{"padding": "8px 14px", "borderRadius": "999px", "fontSize": "13px", "fontWeight": 600, "cursor": "pointer", "color": topic === tp.value ? '#fff' : '#b7adb5', "background": topic === tp.value ? 'rgba(255,90,160,.18)' : 'rgba(255,255,255,.04)', "border": '1px solid ' + (topic === tp.value ? 'rgba(255,90,160,.5)' : 'rgba(255,255,255,.08)')}}>{tp.label}</div>
+              <div key={tp.value} onClick={() => setTopic(tp.value)} style={{"padding": "8px 14px", "borderRadius": "999px", "fontSize": "13px", "fontWeight": 600, "cursor": "pointer", "color": topic === tp.value ? '#fff' : '#b7adb5', "background": topic === tp.value ? 'rgba(255,90,160,.18)' : 'rgba(255,255,255,.04)', "border": '1px solid ' + (topic === tp.value ? 'rgba(255,90,160,.5)' : 'rgba(255,255,255,.08)')}}>{t(tp.key)}</div>
             ))}
           </div>
           <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Describe your issue…" rows={4} style={{"width": "100%", "padding": "12px 14px", "borderRadius": "12px", "border": "1px solid rgba(255,255,255,.1)", "background": "rgba(255,255,255,.04)", "color": "#fff", "fontSize": "15px", "fontFamily": "inherit", "outline": "none", "resize": "vertical"}} />
-          {err && (<div style={{"marginTop": "8px", "fontSize": "13px", "color": "#ff7a93"}}>Something went wrong. Please try again.</div>)}
+          {err && (<div style={{"marginTop": "8px", "fontSize": "13px", "color": "#ff7a93"}}>{t('supportSendError')}</div>)}
           <button onClick={submit} disabled={supportBusy || !message.trim()} style={{"marginTop": "12px", "width": "100%", "padding": "14px", "border": "none", "borderRadius": "14px", "cursor": "pointer", "fontSize": "16px", "fontWeight": "600", "color": "#fff", "background": "linear-gradient(100deg,#d6246e,#ec5690)", "opacity": supportBusy || !message.trim() ? 0.6 : 1}}>{supportBusy ? 'Sending…' : 'Send message'}</button>
         </div>
         )}
