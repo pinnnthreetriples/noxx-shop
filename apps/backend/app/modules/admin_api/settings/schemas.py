@@ -34,6 +34,7 @@ class SettingsOut(BaseModel):
     default_language: str
     stars_to_usd_mode: str
     manual_stars_to_usd_rate: Optional[float] = None
+    star_usd_rate: float
     max_discount_percent: int
     terms_text_en: Optional[str] = None
     refund_policy_text_en: Optional[str] = None

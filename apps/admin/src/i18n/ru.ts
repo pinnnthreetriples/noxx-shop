@@ -172,7 +172,6 @@ const customMessages = {
       name: 'Настройка |||| Настройки',
       fields: {
         bot_name: 'Название бота',
-        support_enabled: 'Поддержка включена',
         default_language: 'Язык по умолчанию',
         stars_to_usd_mode: 'Режим курса Stars → USD',
         manual_stars_to_usd_rate: 'Курс Stars → USD (вручную)',
