@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # 1 in-app "star" of price ≈ this many USD when invoicing crypto
     star_usd_rate: float = 0.02
 
+    # Sentry error monitoring. Empty = disabled (no-op), so local/dev stays silent.
+    sentry_dsn: str = ""
+
     # MyMemory admin auto-translation. Keyless; an optional contact email raises
     # the free daily limit (~5k -> ~50k words/day). Not a secret.
     mymemory_email: str = ""

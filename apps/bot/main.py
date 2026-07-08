@@ -1,9 +1,15 @@
 import asyncio
 import contextlib
 import logging
+import sentry_sdk
 from aiogram import Dispatcher
 
+from .config import SENTRY_DSN, APP_ENV
 from .bot_instance import bot
+
+# Errors-only; the logging integration reports the logger.exception calls below.
+if SENTRY_DSN:
+    sentry_sdk.init(dsn=SENTRY_DSN, environment=APP_ENV, send_default_pii=False)
 from .http_client import api_client
 from .handlers import start as handlers_start
 from .handlers import pre_checkout, successful_payment, admin_reply

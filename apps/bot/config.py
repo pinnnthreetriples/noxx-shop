@@ -1,6 +1,8 @@
 import os
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+APP_ENV = os.environ.get("APP_ENV", "development")
 WEBAPP_URL = os.environ.get("TELEGRAM_WEBAPP_URL", "")
 INTERNAL_API_URL = os.environ.get("INTERNAL_API_URL", "http://backend:8000")
 INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
