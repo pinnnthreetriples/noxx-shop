@@ -133,11 +133,11 @@ class InternalAPIClient:
         data = resp.json()
         return data.get("admin_telegram_ids", [])
 
-    async def get_notification_recipients(self, notification_id: int) -> List[int]:
+    async def get_notification_recipients(self, notification_id: int) -> dict:
+        """Returns {recipients: [{telegram_id, lang}], product_slug, titles}."""
         resp = await self.client.get(f"/internal/notifications/{notification_id}/recipients")
         resp.raise_for_status()
-        data = resp.json()
-        return data.get("user_telegram_ids", [])
+        return resp.json()
 
 
 api_client = InternalAPIClient()
