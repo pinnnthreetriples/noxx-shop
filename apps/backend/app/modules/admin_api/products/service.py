@@ -20,6 +20,20 @@ def _slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", (text or "").strip().lower()).strip("-")
 
 
+def _normalize_tg_message_id(payload: dict) -> None:
+    """Admins paste the channel message link ("Copy Message Link"), e.g.
+    https://t.me/c/2312345678/45 — the trailing number is the message id the bot
+    copies from. Accept a raw number too. Store the int (or None to clear)."""
+    if "tg_message_id" not in payload:
+        return
+    raw = payload["tg_message_id"]
+    if raw is None or raw == "" or isinstance(raw, int):
+        payload["tg_message_id"] = raw or None
+        return
+    m = re.search(r"(\d+)\s*$", str(raw).split("?")[0].rstrip("/"))
+    payload["tg_message_id"] = int(m.group(1)) if m else None
+
+
 class ProductAdminService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -110,6 +124,7 @@ class ProductAdminService:
 
     async def create(self, admin, payload: dict) -> Product:
         await self._apply_pricing_rules(payload)
+        _normalize_tg_message_id(payload)
         payload["slug"] = await self._resolve_slug(payload, None)
         product = await self.repo.create(
             slug=payload["slug"],
@@ -122,6 +137,7 @@ class ProductAdminService:
             preview_video_url=payload.get("preview_video_url"),
             google_drive_link=payload.get("google_drive_link"),
             google_drive_file_id=payload.get("google_drive_file_id"),
+            tg_message_id=payload.get("tg_message_id"),
             trend_score=payload.get("trend_score", 0),
             is_premium=payload.get("is_premium", False),
             available_for_subscription=payload.get("available_for_subscription", False),
@@ -145,6 +161,7 @@ class ProductAdminService:
             return None
         old_status = _status_str(product)
         await self._apply_pricing_rules(payload, product)
+        _normalize_tg_message_id(payload)
         if "slug" in payload:
             payload["slug"] = await self._resolve_slug(payload, product)
         await self.repo.update(product, {k: v for k, v in payload.items() if not k.startswith(("title_", "description_")) and hasattr(product, k) and k != "id"})

@@ -463,6 +463,7 @@ class OrderService:
                     quantity=item.quantity,
                     price_stars=item.price_stars,
                     google_drive_link=p.google_drive_link if (p and o.status.value == "paid") else None,
+                    tg_delivered=bool(p and p.tg_message_id and o.status.value == "paid"),
                 )
             )
         return OrderOut(
@@ -614,6 +615,8 @@ class OrderService:
                 await r.lpush("deliveries:queue", json.dumps({
                     "user_telegram_id": result["user_telegram_id"],
                     "message_text": result["message_text"],
+                    "channel_id": result.get("channel_id"),
+                    "videos": result.get("videos") or [],
                 }))
             finally:
                 await r.aclose()
@@ -666,15 +669,25 @@ class OrderService:
         if not user or not user.telegram_id:
             return {"ok": False, "error": "User not found"}
 
+        channel_id = None
+        videos: List[int] = []
         if order.subscription_plan:
             until = user.premium_until.strftime("%b %d, %Y") if user.premium_until else ""
             message_text = f"Premium activated! Your subscription is active until {until}."
         else:
+            row = await self._settings_row()
+            channel_id = (getattr(row, "delivery_channel_id", None) or "").strip() or None
             lines = [f"Thanks for your purchase!\n\nOrder #{order_id}\n"]
             for idx, (_, product, translation) in enumerate(items, 1):
                 title = translation.title if translation else (product.slug if product else "Item")
-                link = (product.google_drive_link if product else "") or "Link unavailable"
-                lines.append(f"{idx}. {title} — {link}")
+                # Native Telegram delivery when the product is mapped to a channel
+                # message; otherwise fall back to the Google Drive link in the text.
+                if channel_id and product and product.tg_message_id:
+                    videos.append(product.tg_message_id)
+                    lines.append(f"{idx}. {title}")
+                else:
+                    link = (product.google_drive_link if product else "") or "Link unavailable"
+                    lines.append(f"{idx}. {title} — {link}")
             message_text = "\n".join(lines)
 
         return {
@@ -682,6 +695,8 @@ class OrderService:
             "order_id": order_id,
             "user_telegram_id": user.telegram_id,
             "message_text": message_text,
+            "channel_id": channel_id,
+            "videos": videos,
         }
 
 

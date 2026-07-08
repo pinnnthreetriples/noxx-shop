@@ -95,6 +95,7 @@ class OrderItemOut(BaseModel):
     quantity: int
     price_stars: int
     google_drive_link: Optional[str] = None
+    tg_delivered: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -250,7 +250,16 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
     </Row>
     <Section title="Контент и показатели" />
     <Row>
-      <TextInput source="google_drive_link" />
+      <TextInput
+        source="tg_message_id"
+        label="Видео из канала (ссылка на сообщение)"
+        fullWidth
+        format={(v) => (v == null ? '' : String(v))}
+        helperText="Залей полное видео в канал доставки → «Скопировать ссылку на сообщение» → вставь сюда. Приоритетнее Google Drive."
+      />
+    </Row>
+    <Row>
+      <TextInput source="google_drive_link" helperText="Запасной вариант, если видео нет в канале." />
       <TextInput source="google_drive_file_id" />
     </Row>
     <Row>

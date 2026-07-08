@@ -194,6 +194,19 @@ const SettingsPage = () => (
         </FormDataConsumer>
       </FormTab>
 
+      <FormTab label="Доставка">
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 640 }}>
+          Полное видео покупатель получает прямо в боте. Создай приватный канал, добавь бота
+          администратором, вставь сюда ID канала (вида <code>-100…</code>). Дальше у каждого товара
+          указывай ссылку на сообщение с видео из этого канала.
+        </Typography>
+        <TextInput
+          source="delivery_channel_id"
+          label="ID канала доставки"
+          helperText="Например -1001234567890. Бот должен быть админом этого канала."
+        />
+      </FormTab>
+
       <FormTab label="Тексты">
         <TranslatableInput base="terms_text" label="Текст условий использования" multiline />
         <TranslatableInput base="refund_policy_text" label="Текст политики возврата" multiline />

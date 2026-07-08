@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import Integer, String, Boolean, ForeignKey, DateTime, Text, Numeric, Enum, func, UniqueConstraint
+from sqlalchemy import BigInteger, Integer, String, Boolean, ForeignKey, DateTime, Text, Numeric, Enum, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.models_base import Base
 
@@ -77,6 +77,10 @@ class Product(Base):
     preview_video_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     google_drive_link: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     google_drive_file_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # Full video delivered natively from the private Telegram channel: the message
+    # id in that channel. The bot copies it to the buyer after purchase. Falls back
+    # to google_drive_link when unset.
+    tg_message_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     display_views: Mapped[int] = mapped_column(Integer, default=0)
     real_views: Mapped[int] = mapped_column(Integer, default=0)
     display_purchases: Mapped[int] = mapped_column(Integer, default=0)

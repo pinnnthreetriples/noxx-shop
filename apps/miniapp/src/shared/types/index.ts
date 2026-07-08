@@ -24,6 +24,7 @@ export interface OrderItem {
   quantity: number
   price_stars: number
   google_drive_link?: string
+  tg_delivered?: boolean
 }
 
 export interface Order {
