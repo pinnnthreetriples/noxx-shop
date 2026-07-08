@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Edit,
   TabbedForm,
@@ -7,11 +8,15 @@ import {
   BooleanInput,
   SelectInput,
   FormDataConsumer,
+  Confirm,
+  useNotify,
   minValue,
   maxValue,
 } from 'react-admin'
-import { Box, Typography } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import { TranslatableInput } from '../components/TranslatableInput'
+
+const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const LANGUAGES = [
   { id: 'en', name: 'English' },
@@ -40,6 +45,57 @@ const UsdHint = ({ fd, source }: { fd: Record<string, unknown>; source: string }
     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1, mb: 2 }}>
       ≈ ${(stars * rate).toFixed(2)}
     </Typography>
+  )
+}
+
+const ResetDataButton = () => {
+  const notify = useNotify()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleConfirm = async () => {
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('admin_token')
+      const res = await fetch(`${apiUrl}/admin/settings/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      notify('Все данные удалены — магазин как с нуля.', { type: 'success' })
+      setOpen(false)
+    } catch (err) {
+      notify(`Не удалось сбросить данные: ${err instanceof Error ? err.message : 'неизвестная ошибка'}`, {
+        type: 'error',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Box sx={{ maxWidth: 640 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Полностью очистит магазин: товары, категории, теги, пользователей, заказы, платежи, промокоды,
+        обращения в поддержку и уведомления. Администраторы и настройки сохранятся. Действие необратимо.
+      </Typography>
+      <Button color="error" variant="outlined" onClick={() => setOpen(true)}>
+        Удалить все данные
+      </Button>
+      <Confirm
+        isOpen={open}
+        loading={loading}
+        title="Полный сброс данных"
+        content="Все товары, пользователи, заказы и другие данные будут безвозвратно удалены, магазин станет как с нуля. Продолжить?"
+        confirm="Удалить всё"
+        cancel="Отмена"
+        onConfirm={handleConfirm}
+        onClose={() => setOpen(false)}
+      />
+    </Box>
   )
 }
 
@@ -141,6 +197,10 @@ const SettingsPage = () => (
       <FormTab label="Тексты">
         <TranslatableInput base="terms_text" label="Текст условий использования" multiline />
         <TranslatableInput base="refund_policy_text" label="Текст политики возврата" multiline />
+      </FormTab>
+
+      <FormTab label="Опасная зона">
+        <ResetDataButton />
       </FormTab>
     </TabbedForm>
   </Edit>

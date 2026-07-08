@@ -18,6 +18,15 @@ async def get_settings(
     return await service.get()
 
 
+@router.post("/settings/reset")
+async def reset_all_data(
+    admin: Admin = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    service = SettingsAdminService(db)
+    return await service.reset_all(admin)
+
+
 @router.put("/settings")
 async def update_settings(
     payload: dict,
