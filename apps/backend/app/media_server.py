@@ -52,6 +52,7 @@ async def serve_media(path: str, request: Request):
             "Accept-Ranges": "bytes",
             "Content-Length": str(len(data)),
             "Content-Type": content_type,
+            "Cache-Control": "public, max-age=31536000, immutable",
         }
         return Response(content=data, status_code=206, headers=headers)
 
@@ -61,5 +62,6 @@ async def serve_media(path: str, request: Request):
         "Content-Length": str(file_size),
         "Content-Type": content_type,
         "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=31536000, immutable",
     }
     return Response(content=data, status_code=200, headers=headers)

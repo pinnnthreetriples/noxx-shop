@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { resolveMock } from './devMocks'
+import { useAppStore } from '../lib/store'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -17,6 +18,10 @@ api.interceptors.request.use((config) => {
   const initData = window.Telegram?.WebApp?.initData || devInit
   if (initData) {
     config.headers['x-telegram-init-data'] = initData
+  }
+  const lang = useAppStore.getState().language
+  if (lang) {
+    config.headers['x-lang'] = lang
   }
   return config
 })

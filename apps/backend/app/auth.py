@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import get_db
 from app.models import User, Admin
+from app.modules.catalog.service import SUPPORTED_LANGUAGES
 
 security = HTTPBearer(auto_error=False)
 
@@ -90,6 +91,10 @@ async def get_current_user(
 
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="User is blocked")
+
+    hdr = request.headers.get("x-lang")
+    if hdr in SUPPORTED_LANGUAGES and hdr != user.selected_language:
+        user.selected_language = hdr
 
     user.last_seen_at = datetime.now(timezone.utc)
     await db.commit()

@@ -15,7 +15,7 @@ _EAGER = (
     selectinload(Product.tags).selectinload(ProductTag.tag).selectinload(Tag.translations),
 )
 
-SUPPORTED_LANGUAGES = {"en", "ru", "es", "de", "el", "ro", "bg", "mo", "sr", "tr"}
+SUPPORTED_LANGUAGES = {"en", "ru", "de", "el", "ro", "bg", "mo", "sr", "tr"}
 
 
 def resolve_language(user) -> str:
