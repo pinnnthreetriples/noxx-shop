@@ -92,6 +92,24 @@ function fallbackRec(productId: number, title: string, priceStars: number, rate:
   }
 }
 
+// Support conversation shapes — mirror the backend SupportTicketDetail /
+// SupportMessageOut (apps/backend/app/modules/support/schemas.py).
+export interface SupportMsg {
+  id: number
+  sender_type: string
+  text?: string | null
+  file_url?: string | null
+  file_type?: string | null
+  created_at: string
+}
+export interface SupportTicket {
+  id: number
+  topic: string
+  status: string
+  created_at: string
+  messages: SupportMsg[]
+}
+
 export function useNoxx() {
   const nav = RR.useNavigate()
   const loc = RR.useLocation()
@@ -217,6 +235,20 @@ export function useNoxx() {
   const supportMut = useMutation({
     mutationFn: async (p: { topic: string; message: string }) =>
       (await api.post('/support/tickets', p)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['support-tickets'] }),
+  })
+
+  // Two-way support: the user's tickets with their full message thread (user +
+  // admin). Polled so the owner's replies appear while the screen is open.
+  const supportTicketsQ = useQuery({
+    queryKey: ['support-tickets'],
+    queryFn: async () => (await api.get<SupportTicket[]>('/support/tickets')).data,
+    refetchInterval: 15_000,
+  })
+  const supportReplyMut = useMutation({
+    mutationFn: async (p: { ticketId: number; text: string }) =>
+      (await api.post(`/support/tickets/${p.ticketId}/messages`, { text: p.text })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['support-tickets'] }),
   })
 
   // Premium subscription checkout — same invoice flow as products, minus the cart.
@@ -605,6 +637,12 @@ export function useNoxx() {
     supportTopics: Model.SUPPORT_TOPICS,
     sendSupport: (topic: string, message: string) => supportMut.mutateAsync({ topic, message }),
     supportBusy: supportMut.isPending,
+    // two-way support conversations
+    supportTickets: supportTicketsQ.data ?? [],
+    supportLoading: supportTicketsQ.isLoading,
+    supportError: supportTicketsQ.isError && !supportTicketsQ.isLoading,
+    replySupport: (ticketId: number, text: string) => supportReplyMut.mutateAsync({ ticketId, text }),
+    replyBusy: supportReplyMut.isPending,
     // gate
     gateBtnStyle, toggleGate: () => setGateChecked((c) => !c), gateOk: gateChecked, gateNo: !gateChecked,
     // bottom-nav active state

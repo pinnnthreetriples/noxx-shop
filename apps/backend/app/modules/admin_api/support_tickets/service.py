@@ -2,8 +2,10 @@
 import json
 from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import settings
 from app.core.redis_client import redis_client
 from app.modules.support.models import SupportTicket
+from app.modules.support.reply_i18n import nudge_text, open_label
 from app.modules.support.repository import SupportTicketRepository, SupportMessageRepository
 from app.modules.users.repository import UserRepository
 from app.modules.admin_api.support_tickets.repository import SupportTicketAdminRepository
@@ -39,7 +41,8 @@ class SupportTicketAdminService:
 
     async def reply(self, admin, id: int, text: str) -> Optional[Dict[str, Any]]:
         """Store the owner's reply as an `admin` message, mark the ticket
-        answered, and deliver the text to the user via the bot delivery queue."""
+        answered, and nudge the user (via the bot delivery queue) to open the
+        mini-app support screen where the reply text lives."""
         ticket = await self.repo.get_by_id(id)
         if not ticket:
             return None
@@ -52,9 +55,12 @@ class SupportTicketAdminService:
 
         delivered = False
         if user and user.telegram_id:
+            lang = user.selected_language or "en"
+            webapp = settings.telegram_webapp_url.rstrip("/")
             await redis_client.lpush("deliveries:queue", json.dumps({
                 "user_telegram_id": user.telegram_id,
-                "message_text": f"Ответ поддержки:\n{text}",
+                "message_text": f"🔔 {nudge_text(lang)}",
+                "button": {"text": open_label(lang), "url": f"{webapp}/support"},
             }))
             delivered = True
 
