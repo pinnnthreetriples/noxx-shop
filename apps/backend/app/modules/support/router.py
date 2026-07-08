@@ -2,6 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
+from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.auth import get_current_user
 from app.modules.support.schemas import SupportTicketIn, SupportTicketOut, SupportTicketDetail, SupportMessageIn, SupportMessageOut
@@ -27,7 +28,10 @@ async def create_support_ticket(body: SupportTicketIn, user=Depends(get_current_
 @router.get("/support/tickets", response_model=List[SupportTicketDetail])
 async def list_support_tickets(user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(SupportTicket).where(SupportTicket.user_id == user.id).order_by(desc(SupportTicket.created_at))
+        select(SupportTicket)
+        .options(selectinload(SupportTicket.messages))  # eager-load: async lazy access to .messages 500s (MissingGreenlet)
+        .where(SupportTicket.user_id == user.id)
+        .order_by(desc(SupportTicket.created_at))
     )
     tickets = result.scalars().all()
     out = []

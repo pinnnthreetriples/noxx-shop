@@ -28,6 +28,13 @@ class ProductAdminRepository:
     async def get_by_id(self, id: int) -> Optional[Product]:
         result = await self.db.execute(select(Product).where(Product.id == id))
         return result.scalars().first()
+
+    async def slug_taken(self, slug: str, exclude_id: Optional[int] = None) -> bool:
+        stmt = select(Product.id).where(Product.slug == slug)
+        if exclude_id is not None:
+            stmt = stmt.where(Product.id != exclude_id)
+        result = await self.db.execute(stmt)
+        return result.scalars().first() is not None
     
     async def create(self, **fields) -> Product:
         product = Product(**fields)

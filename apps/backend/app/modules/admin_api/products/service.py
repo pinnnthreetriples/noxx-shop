@@ -1,4 +1,5 @@
 """Product admin service - use-case logic."""
+import re
 from typing import Optional, Dict, Any
 from sqlalchemy import inspect as sa_inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,10 @@ from app.modules.orders.service import OrderService
 
 def _status_str(product: Product) -> str:
     return getattr(product.status, "value", str(product.status))
+
+
+def _slugify(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", (text or "").strip().lower()).strip("-")
 
 
 class ProductAdminService:
@@ -66,6 +71,29 @@ class ProductAdminService:
         if status == "published" and stars <= 0:
             raise ValueError("У опубликованного товара должна быть цена: заполните «Цена (Stars)» или «Цена (USD)»")
 
+    async def _resolve_slug(self, payload: dict, current: Optional[Product]) -> str:
+        """Guarantee a non-empty, unique slug (the column is UNIQUE, so a blank or
+        duplicate slug raised a 500 IntegrityError). An explicit clash is reported
+        back to the admin; an auto-derived one gets a numeric suffix instead."""
+        explicit = bool((payload.get("slug") or "").strip())
+        base = _slugify(payload.get("slug") or "")
+        if not base:  # derive from any provided title (only latin survives slugify)
+            for lang in LANGUAGE_CODES:
+                base = _slugify(payload.get(f"title_{lang}") or "")
+                if base:
+                    break
+        if not base:
+            raise ValueError("Заполните поле «slug» латиницей — из названия его сформировать не удалось")
+        exclude_id = current.id if current else None
+        if not await self.repo.slug_taken(base, exclude_id):
+            return base
+        if explicit:
+            raise ValueError(f"Товар со slug «{base}» уже существует — задайте другой")
+        n = 2
+        while await self.repo.slug_taken(f"{base}-{n}", exclude_id):
+            n += 1
+        return f"{base}-{n}"
+
     async def _notify_new_product(self, admin, product: Product) -> None:
         """Announce a newly published product to eligible users — once ever.
         De-duped without a migration: if a notification row already exists for
@@ -82,8 +110,9 @@ class ProductAdminService:
 
     async def create(self, admin, payload: dict) -> Product:
         await self._apply_pricing_rules(payload)
+        payload["slug"] = await self._resolve_slug(payload, None)
         product = await self.repo.create(
-            slug=payload.get("slug", ""),
+            slug=payload["slug"],
             status=payload.get("status", "draft"),
             price_stars=payload.get("price_stars", 0),
             usd_price_mode=payload.get("usd_price_mode", "auto"),
@@ -116,6 +145,8 @@ class ProductAdminService:
             return None
         old_status = _status_str(product)
         await self._apply_pricing_rules(payload, product)
+        if "slug" in payload:
+            payload["slug"] = await self._resolve_slug(payload, product)
         await self.repo.update(product, {k: v for k, v in payload.items() if not k.startswith(("title_", "description_")) and hasattr(product, k) and k != "id"})
         for lang in LANGUAGE_CODES:
             title = payload.get(f"title_{lang}")

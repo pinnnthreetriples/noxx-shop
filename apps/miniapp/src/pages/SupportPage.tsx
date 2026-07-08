@@ -44,9 +44,12 @@ export default function SupportPage() {
     if (!message.trim() || supportBusy) return
     setErr(false)
     try {
-      await sendSupport(topic, message.trim())
+      const created = await sendSupport(topic, message.trim())
       setMessage('')
       setFormOpen(false)
+      // Reveal the freshly-created thread so the user sees their message landed —
+      // otherwise the form just collapses and it's unclear whether it sent.
+      if (created?.id) setOpenId(created.id)
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success')
     } catch {
       setErr(true)
