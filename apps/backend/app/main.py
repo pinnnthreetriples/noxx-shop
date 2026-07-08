@@ -32,6 +32,13 @@ async def _add_missing_columns(conn):
         "ALTER TABLE settings ADD COLUMN IF NOT EXISTS "
         "withdrawal_commission_percent INTEGER NOT NULL DEFAULT 35"
     )
+    for _lang in ("ru", "de", "el", "ro", "bg", "mo", "sr", "tr"):
+        await conn.exec_driver_sql(
+            f"ALTER TABLE settings ADD COLUMN IF NOT EXISTS terms_text_{_lang} TEXT"
+        )
+        await conn.exec_driver_sql(
+            f"ALTER TABLE settings ADD COLUMN IF NOT EXISTS refund_policy_text_{_lang} TEXT"
+        )
 
 
 @asynccontextmanager

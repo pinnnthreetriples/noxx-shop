@@ -31,7 +31,23 @@ class SettingsOut(BaseModel):
     subscription_coming_soon_enabled: bool
     subscription_coming_soon_text: Optional[str] = None
     terms_text_en: Optional[str] = None
+    terms_text_ru: Optional[str] = None
+    terms_text_de: Optional[str] = None
+    terms_text_el: Optional[str] = None
+    terms_text_ro: Optional[str] = None
+    terms_text_bg: Optional[str] = None
+    terms_text_mo: Optional[str] = None
+    terms_text_sr: Optional[str] = None
+    terms_text_tr: Optional[str] = None
     refund_policy_text_en: Optional[str] = None
+    refund_policy_text_ru: Optional[str] = None
+    refund_policy_text_de: Optional[str] = None
+    refund_policy_text_el: Optional[str] = None
+    refund_policy_text_ro: Optional[str] = None
+    refund_policy_text_bg: Optional[str] = None
+    refund_policy_text_mo: Optional[str] = None
+    refund_policy_text_sr: Optional[str] = None
+    refund_policy_text_tr: Optional[str] = None
     discount_first_purchase_percent: int = 10
     discount_bulk_percent: int = 15
     discount_bulk_min_items: int = 20
