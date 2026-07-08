@@ -1,5 +1,5 @@
 """Admin support reply: stores an `admin` message, marks the ticket answered,
-and enqueues a bot delivery for the ticket author."""
+and enqueues a short localized bot nudge (not the reply body) for the author."""
 import json
 import pytest
 from app.modules.support.models import SupportTicket, SupportMessage, TicketStatus, SupportTopic
@@ -19,7 +19,7 @@ class FakeRedis:
 async def test_reply_stores_message_marks_answered_and_enqueues(db_session, monkeypatch):
     from app.modules.admin_api.support_tickets.service import SupportTicketAdminService
 
-    user = User(telegram_id=700100200, first_name="Buyer")
+    user = User(telegram_id=700100200, first_name="Buyer", selected_language="en")
     db_session.add(user)
     await db_session.flush()
     ticket = SupportTicket(user_id=user.id, topic=SupportTopic.other, status=TicketStatus.open)
@@ -33,24 +33,28 @@ async def test_reply_stores_message_marks_answered_and_enqueues(db_session, monk
     monkeypatch.setattr(svc_module, "redis_client", fake)
 
     admin = type("Admin", (), {"id": 5})()
-    result = await SupportTicketAdminService(db_session).reply(admin, ticket.id, "Ваш заказ отправлен")
+    reply_body = "Ваш заказ отправлен"
+    result = await SupportTicketAdminService(db_session).reply(admin, ticket.id, reply_body)
 
-    # (a) an admin message is stored
+    # (a) the full reply is still stored as an admin message (the mini-app reads it)
     admin_msgs = [m for m in result["messages"] if m["sender_type"] == "admin"]
     assert len(admin_msgs) == 1
-    assert admin_msgs[0]["text"] == "Ваш заказ отправлен"
+    assert admin_msgs[0]["text"] == reply_body
 
     # (b) status flips to answered
     assert result["status"] == TicketStatus.answered.value
     assert result["delivered"] is True
 
-    # (c) a {user_telegram_id, message_text} is enqueued on deliveries:queue
+    # (c) the bot gets a short localized nudge + a /support button, NOT the reply body
     assert len(fake.pushed) == 1
     key, value = fake.pushed[0]
     assert key == "deliveries:queue"
     payload = json.loads(value)
     assert payload["user_telegram_id"] == user.telegram_id
-    assert payload["message_text"] == "Ответ поддержки:\nВаш заказ отправлен"
+    assert reply_body not in payload["message_text"]
+    assert payload["message_text"] == "🔔 Reply from support"
+    assert payload["button"]["text"] == "Open"
+    assert payload["button"]["url"].endswith("/support")
 
 
 @pytest.mark.asyncio

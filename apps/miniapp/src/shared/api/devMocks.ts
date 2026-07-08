@@ -61,6 +61,19 @@ export const mockProfile = {
   is_premium: true,
 }
 
+export const mockSupportTickets = [
+  {
+    id: 1,
+    topic: 'Payment issue',
+    status: 'answered',
+    created_at: new Date(Date.now() - 3600_000).toISOString(),
+    messages: [
+      { id: 1, sender_type: 'user', text: 'My payment did not go through.', created_at: new Date(Date.now() - 3600_000).toISOString() },
+      { id: 2, sender_type: 'admin', text: 'Thanks for reaching out — could you share the order number?', created_at: new Date(Date.now() - 1800_000).toISOString() },
+    ],
+  },
+]
+
 /** Resolve a mock payload for a given GET path, or undefined if unmocked. */
 export function resolveMock(url: string): unknown {
   const path = url.split('?')[0].replace(/\/+$/, '')
@@ -68,5 +81,6 @@ export function resolveMock(url: string): unknown {
   if (path.includes('/products/')) return mockProduct
   if (path.endsWith('/orders')) return mockOrders
   if (path.endsWith('/profile')) return mockProfile
+  if (path.endsWith('/support/tickets')) return mockSupportTickets
   return undefined
 }
