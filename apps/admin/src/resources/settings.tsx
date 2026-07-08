@@ -7,6 +7,8 @@ import {
   BooleanInput,
   SelectInput,
   FormDataConsumer,
+  minValue,
+  maxValue,
 } from 'react-admin'
 import { Box, Typography } from '@mui/material'
 
@@ -84,20 +86,21 @@ const SettingsPage = () => (
                 label="Комиссия при выводе (%)"
                 min={0}
                 max={100}
+                validate={[minValue(0), maxValue(100)]}
                 helperText="Обычно ~35. Цена для покупателя = базовая ÷ (1 − процент/100)."
               />
             ) : null
           }
         </FormDataConsumer>
-        <NumberInput source="sub_price_week_stars" label="Подписка: неделя (Stars)" min={1} />
+        <NumberInput source="sub_price_week_stars" label="Подписка: неделя (Stars)" min={1} validate={[minValue(1)]} />
         <FormDataConsumer>
           {({ formData }) => <UsdHint fd={formData} source="sub_price_week_stars" />}
         </FormDataConsumer>
-        <NumberInput source="sub_price_month_stars" label="Подписка: месяц (Stars)" min={1} />
+        <NumberInput source="sub_price_month_stars" label="Подписка: месяц (Stars)" min={1} validate={[minValue(1)]} />
         <FormDataConsumer>
           {({ formData }) => <UsdHint fd={formData} source="sub_price_month_stars" />}
         </FormDataConsumer>
-        <NumberInput source="sub_price_year_stars" label="Подписка: год (Stars)" min={1} />
+        <NumberInput source="sub_price_year_stars" label="Подписка: год (Stars)" min={1} validate={[minValue(1)]} />
         <FormDataConsumer>
           {({ formData }) => <UsdHint fd={formData} source="sub_price_year_stars" />}
         </FormDataConsumer>
@@ -109,16 +112,17 @@ const SettingsPage = () => (
           label="Макс. скидка (%)"
           min={0}
           max={100}
+          validate={[minValue(0), maxValue(100)]}
           helperText="Глобальный потолок: итоговая скидка не превысит это значение."
         />
-        <NumberInput source="discount_first_purchase_percent" label="Скидка на первую покупку (%)" min={0} max={100} />
+        <NumberInput source="discount_first_purchase_percent" label="Скидка на первую покупку (%)" min={0} max={100} validate={[minValue(0), maxValue(100)]} />
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <NumberInput source="discount_bulk_percent" label="Скидка за крупный заказ (%)" min={0} max={100} />
-          <NumberInput source="discount_bulk_min_items" label="Крупный заказ: от скольких видео" min={1} />
+          <NumberInput source="discount_bulk_percent" label="Скидка за крупный заказ (%)" min={0} max={100} validate={[minValue(0), maxValue(100)]} />
+          <NumberInput source="discount_bulk_min_items" label="Крупный заказ: от скольких видео" min={1} validate={[minValue(1)]} />
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <NumberInput source="discount_loyalty_percent" label="Постоянная скидка (%)" min={0} max={100} />
-          <NumberInput source="discount_loyalty_min_items" label="Постоянная скидка: от скольких купленных видео" min={1} />
+          <NumberInput source="discount_loyalty_percent" label="Постоянная скидка (%)" min={0} max={100} validate={[minValue(0), maxValue(100)]} />
+          <NumberInput source="discount_loyalty_min_items" label="Постоянная скидка: от скольких купленных видео" min={1} validate={[minValue(1)]} />
         </Box>
       </FormTab>
 

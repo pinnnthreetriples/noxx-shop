@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -10,20 +10,20 @@ class SettingsUpdate(BaseModel):
     default_language: Optional[str] = None
     stars_to_usd_mode: Optional[str] = None
     manual_stars_to_usd_rate: Optional[float] = None
-    max_discount_percent: Optional[int] = Field(None, ge=0, le=100)
+    max_discount_percent: Optional[int] = None
     terms_text_en: Optional[str] = None
     refund_policy_text_en: Optional[str] = None
     notifications_enabled_by_default: Optional[bool] = None
     subscription_coming_soon_enabled: Optional[bool] = None
     subscription_coming_soon_text: Optional[str] = None
-    discount_first_purchase_percent: Optional[int] = Field(None, ge=0, le=100)
-    discount_bulk_percent: Optional[int] = Field(None, ge=0, le=100)
-    discount_bulk_min_items: Optional[int] = Field(None, ge=1)
-    discount_loyalty_percent: Optional[int] = Field(None, ge=0, le=100)
-    discount_loyalty_min_items: Optional[int] = Field(None, ge=1)
-    sub_price_week_stars: Optional[int] = Field(None, ge=1)
-    sub_price_month_stars: Optional[int] = Field(None, ge=1)
-    sub_price_year_stars: Optional[int] = Field(None, ge=1)
+    discount_first_purchase_percent: Optional[int] = None
+    discount_bulk_percent: Optional[int] = None
+    discount_bulk_min_items: Optional[int] = None
+    discount_loyalty_percent: Optional[int] = None
+    discount_loyalty_min_items: Optional[int] = None
+    sub_price_week_stars: Optional[int] = None
+    sub_price_month_stars: Optional[int] = None
+    sub_price_year_stars: Optional[int] = None
 
 
 class SettingsOut(BaseModel):
