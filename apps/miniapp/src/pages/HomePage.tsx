@@ -44,7 +44,8 @@ export default function HomePage() {
             </div>
             <div style={{"flex": "1", "minWidth": "0"}}>
               <div style={{"fontSize": "17px", "fontWeight": "600", "color": "#fff", "letterSpacing": "-.2px"}}>{v.title}</div>
-              <div style={{"fontSize": "13px", "color": "#8c828c", "margin": "3px 0 9px"}}>{v.tagline}</div>
+              {(v.cardSub) && (<><div style={{"fontSize": "13px", "color": "#8c828c", "margin": "3px 0 9px", "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"}}>{v.cardSub}</div></>)}
+              {(v.hasBadge) && (<><div style={{"display": "flex", "alignItems": "center", "gap": "7px", "marginTop": "9px", "flexWrap": "wrap"}}><div style={v.badgeStyle}>{v.badge}</div></div></>)}
               <div style={{"display": "flex", "alignItems": "center", "gap": "12px"}}>
                 <div style={{"display": "flex", "alignItems": "center", "gap": "4px", "color": "#8c828c", "fontSize": "12.5px"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c828c" strokeWidth="1.7" strokeLinejoin="round"><path d="M5 8h14l-1 11.2a2 2 0 0 1-2 1.8H8a2 2 0 0 1-2-1.8Z" /><path d="M8.5 8V6.5a3.5 3.5 0 0 1 7 0V8" /></svg>{v.purchases}</div>
                 <div style={{"display": "flex", "alignItems": "center", "gap": "4px", "color": "#8c828c", "fontSize": "12.5px"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c828c" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>{v.views}</div>
