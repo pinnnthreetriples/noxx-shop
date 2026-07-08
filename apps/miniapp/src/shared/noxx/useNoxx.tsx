@@ -2,6 +2,7 @@
 // reference, sourced from the local store + the real backend API.
 import * as React from 'react'
 import * as RR from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Store from '../lib/store'
 import * as Model from './model'
@@ -120,6 +121,7 @@ export function useNoxx() {
   const removeFromCart = Store.useAppStore((s) => s.removeFromCart)
   const clearCart = Store.useAppStore((s) => s.clearCart)
   const language = Store.useAppStore((s) => s.language)
+  const { t } = useTranslation()
   const setLanguage = Store.useAppStore((s) => s.setLanguage)
   const setAgeConfirmed = Store.useAppStore((s) => s.setAgeConfirmed)
   const payMethod = Store.useAppStore((s) => s.payMethod)
@@ -152,6 +154,8 @@ export function useNoxx() {
       sub_price_week_stars?: number
       sub_price_month_stars?: number
       sub_price_year_stars?: number
+      // per-language legal texts: terms_text_${lang} / refund_policy_text_${lang}
+      [key: string]: unknown
     }>('/settings')).data,
     staleTime: 5 * 60_000,
   })
@@ -637,12 +641,16 @@ export function useNoxx() {
     subComingSoonText: settingsQ.data?.subscription_coming_soon_text || 'Subscriptions are coming soon.',
     // support / terms — admin-edited texts win, design defaults as fallback
     termsSections: (() => {
-      const t = settingsQ.data?.terms_text_en?.trim()
-      const r = settingsQ.data?.refund_policy_text_en?.trim()
-      if (!t && !r) return Model.PLAN_TERMS
+      const s = settingsQ.data
+      const pick = (base: string) =>
+        (s?.[`${base}_${language}`] as string | undefined)?.trim() ||
+        (s?.[`${base}_en`] as string | undefined)?.trim()
+      const termsTxt = pick('terms_text')
+      const refundTxt = pick('refund_policy_text')
+      if (!termsTxt && !refundTxt) return Model.PLAN_TERMS
       return [
-        ...(t ? [{ head: 'Terms of service', body: t }] : []),
-        ...(r ? [{ head: 'Refunds', body: r }] : []),
+        ...(termsTxt ? [{ head: t('termsServiceHead'), body: termsTxt }] : []),
+        ...(refundTxt ? [{ head: t('termsRefundsHead'), body: refundTxt }] : []),
       ]
     })(),
     supportTopics: Model.SUPPORT_TOPICS,

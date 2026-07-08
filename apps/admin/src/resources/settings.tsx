@@ -11,6 +11,7 @@ import {
   maxValue,
 } from 'react-admin'
 import { Box, Typography } from '@mui/material'
+import { TranslatableInput } from '../components/TranslatableInput'
 
 const LANGUAGES = [
   { id: 'en', name: 'English' },
@@ -138,8 +139,8 @@ const SettingsPage = () => (
       </FormTab>
 
       <FormTab label="Тексты">
-        <TextInput source="terms_text_en" label="Текст условий использования" multiline fullWidth />
-        <TextInput source="refund_policy_text_en" label="Текст политики возврата" multiline fullWidth />
+        <TranslatableInput base="terms_text" label="Текст условий использования" multiline />
+        <TranslatableInput base="refund_policy_text" label="Текст политики возврата" multiline />
       </FormTab>
     </TabbedForm>
   </Edit>
