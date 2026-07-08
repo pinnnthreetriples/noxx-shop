@@ -32,7 +32,8 @@ const btnStyle = (busy: boolean) => ({
   color: '#fff', fontSize: 14, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
 } as const)
 
-// Upload a file/blob to POST /admin/upload; returns the stored relative path.
+// Upload a file/blob to POST /admin/upload; returns the served URL (an absolute
+// CDN URL when R2 is configured, else a media-server path). Stored as-is.
 // A filename is required for blobs so the backend extension check passes.
 const uploadToMedia = async (file: Blob, filename?: string): Promise<string> => {
   const fd = new FormData()
@@ -45,7 +46,7 @@ const uploadToMedia = async (file: Blob, filename?: string): Promise<string> => 
     body: fd,
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return (await res.json()).path as string
+  return (await res.json()).url as string
 }
 
 // Downscale an image blob to a JPEG whose longest side is <= maxDim (never

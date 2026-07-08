@@ -45,6 +45,15 @@ class Settings(BaseSettings):
     # the free daily limit (~5k -> ~50k words/day). Not a secret.
     mymemory_email: str = ""
 
+    # Cloudflare R2 media storage (S3-compatible). When these are set, admin
+    # uploads land in R2 and are served from the CDN at r2_public_base_url;
+    # otherwise uploads fall back to the local media volume (dev/tests).
+    r2_endpoint_url: str = ""
+    r2_bucket: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_public_base_url: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
