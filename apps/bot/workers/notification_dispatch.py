@@ -20,9 +20,11 @@ def _build_message(lang, titles, product_slug, fallback_title, fallback_body, we
     else:
         text = fallback_title + (f"\n{fallback_body}" if fallback_body else "")
         url = webapp_url
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=t(lang, "view"), web_app=WebAppInfo(url=url))],
-    ])
+    kb = None
+    if url.startswith("https://"):
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=t(lang, "view"), web_app=WebAppInfo(url=url))],
+        ])
     return text, kb
 
 
