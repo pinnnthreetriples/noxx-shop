@@ -46,7 +46,7 @@ async def _add_missing_columns(conn):
         )
     # Native Telegram video delivery (falls back to google_drive_link when unset).
     await conn.exec_driver_sql(
-        "ALTER TABLE products ADD COLUMN IF NOT EXISTS tg_message_id INTEGER"
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS tg_message_id BIGINT"
     )
     await conn.exec_driver_sql(
         "ALTER TABLE settings ADD COLUMN IF NOT EXISTS delivery_channel_id VARCHAR(64)"

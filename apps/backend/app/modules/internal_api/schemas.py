@@ -28,6 +28,8 @@ class SuccessfulPaymentResponse(BaseModel):
     order_id: Optional[int] = None
     user_telegram_id: Optional[int] = None
     message_text: Optional[str] = None
+    channel_id: Optional[str] = None
+    videos: List[int] = []
     error: Optional[str] = None
 
 

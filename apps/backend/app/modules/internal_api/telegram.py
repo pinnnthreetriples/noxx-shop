@@ -47,6 +47,8 @@ async def successful_payment(payload: SuccessfulPaymentRequest, db: AsyncSession
         order_id=result.get("order_id"),
         user_telegram_id=result.get("user_telegram_id"),
         message_text=result.get("message_text"),
+        channel_id=result.get("channel_id"),
+        videos=result.get("videos") or [],
         error=result.get("error"),
     )
 
