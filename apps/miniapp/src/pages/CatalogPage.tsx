@@ -41,7 +41,6 @@ export default function CatalogPage() {
                 <div style={{"flex": "1", "minWidth": "0", "fontSize": "16.5px", "fontWeight": "600", "color": "#fff", "letterSpacing": "-.2px", "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"}}>{v.title}</div>
                 <div style={{"flex": "none", "display": "flex", "alignItems": "center", "gap": "4px"}}>{!payCrypto && (<svg width="15" height="15" viewBox="0 0 24 24" fill="#f7b23b"><path d="M12 2l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.98 6.1 20.16l1.13-6.57L2.45 8.94l6.6-.96z" /></svg>)}<span style={{"fontSize": "16px", "fontWeight": "800", "color": "#fff", "letterSpacing": "-.3px"}}>{payCrypto ? v.usd : v.priceFmt}</span></div>
               </div>
-              {(v.cardSub) && (<><div style={{"fontSize": "13px", "color": "#8c828c", "marginTop": "3px", "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"}}>{v.cardSub}</div></>)}
               {(v.hasBadge) && (<><div style={{"display": "flex", "alignItems": "center", "gap": "7px", "marginTop": "9px", "flexWrap": "wrap"}}><div style={v.badgeStyle}>{v.badge}</div></div></>)}
               <div style={{"display": "flex", "alignItems": "center", "justifyContent": "space-between", "gap": "10px", "marginTop": "auto", "paddingTop": "10px"}}>
                 <div style={{"display": "flex", "alignItems": "center", "gap": "13px", "minWidth": "0", "overflow": "hidden"}}>
