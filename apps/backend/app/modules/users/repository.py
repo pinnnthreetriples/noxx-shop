@@ -88,8 +88,14 @@ class UserRepository:
         return user
 
     async def list_for_notifications(self) -> List[User]:
+        # started_bot_at gates users who only ever used the mini-app and have no
+        # private chat with the bot — sending there fails with 403/chat not found.
         result = await self.db.execute(
-            select(User).where(User.is_blocked.is_(False), User.notifications_enabled.is_(True))
+            select(User).where(
+                User.is_blocked.is_(False),
+                User.notifications_enabled.is_(True),
+                User.started_bot_at.isnot(None),
+            )
         )
         return list(result.scalars().all())
 

@@ -4,9 +4,15 @@ from sqlalchemy import inspect as sa_inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.admin.models import AdminLog
 from app.modules.catalog.models import Product, ProductTag, ProductTranslation
+from app.modules.notifications.models import Notification
+from app.modules.notifications.service import NotificationService
 from app.modules.admin_api.products.repository import ProductAdminRepository
 from app.modules.admin_api.filters import LANGUAGE_CODES, AdminListFilters
 from app.modules.orders.service import OrderService
+
+
+def _status_str(product: Product) -> str:
+    return getattr(product.status, "value", str(product.status))
 
 
 class ProductAdminService:
@@ -60,6 +66,20 @@ class ProductAdminService:
         if status == "published" and stars <= 0:
             raise ValueError("У опубликованного товара должна быть цена: заполните «Цена (Stars)» или «Цена (USD)»")
 
+    async def _notify_new_product(self, admin, product: Product) -> None:
+        """Announce a newly published product to eligible users — once ever.
+        De-duped without a migration: if a notification row already exists for
+        this product_id we skip, so re-publishing or editing never re-notifies.
+        The bot builds the localized user-facing text from the product title."""
+        existing = await self.db.execute(
+            select(Notification.id).where(Notification.product_id == product.id)
+        )
+        if existing.scalars().first() is not None:
+            return
+        await NotificationService(self.db).create_and_enqueue(
+            admin, title="New product", body=None, product_id=product.id,
+        )
+
     async def create(self, admin, payload: dict) -> Product:
         await self._apply_pricing_rules(payload)
         product = await self.repo.create(
@@ -86,12 +106,15 @@ class ProductAdminService:
         self.db.add(AdminLog(admin_id=admin.id, action="create_product", entity_type="product", entity_id=product.id))
         await self.db.commit()
         await self.db.refresh(product)
+        if _status_str(product) == "published":
+            await self._notify_new_product(admin, product)
         return await self._serialize(product)
-    
+
     async def update(self, admin, id: int, payload: dict) -> Optional[Product]:
         product = await self.repo.get_by_id(id)
         if not product:
             return None
+        old_status = _status_str(product)
         await self._apply_pricing_rules(payload, product)
         await self.repo.update(product, {k: v for k, v in payload.items() if not k.startswith(("title_", "description_")) and hasattr(product, k) and k != "id"})
         for lang in LANGUAGE_CODES:
@@ -105,6 +128,8 @@ class ProductAdminService:
         self.db.add(AdminLog(admin_id=admin.id, action="update_product", entity_type="product", entity_id=product.id))
         await self.db.commit()
         await self.db.refresh(product)
+        if old_status != "published" and _status_str(product) == "published":
+            await self._notify_new_product(admin, product)
         return await self._serialize(product)
     
     async def soft_delete(self, admin, id: int) -> Optional[Product]:

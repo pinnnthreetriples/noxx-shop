@@ -4,13 +4,16 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.config import settings
+from sqlalchemy import select
 from app.modules.internal_api.schemas import (
     NotificationSendResultRequest, NotificationSendResultResponse,
     PopNotificationResponse,
-    NotificationRecipientsResponse,
+    NotificationRecipientsResponse, NotificationRecipientItem,
 )
 import redis.asyncio as redis_async
 from app.modules.notifications.service import NotificationService
+from app.modules.notifications.repository import NotificationRepository
+from app.modules.catalog.models import Product, ProductTranslation
 from app.modules.users.repository import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -68,6 +71,27 @@ async def pop_notification():
 
 @router.get("/{notification_id}/recipients", response_model=NotificationRecipientsResponse)
 async def notification_recipients(notification_id: int, db: AsyncSession = Depends(get_db)):
-    user_repo = UserRepository(db)
-    users = await user_repo.list_for_notifications()
-    return NotificationRecipientsResponse(user_telegram_ids=[u.telegram_id for u in users])
+    users = await UserRepository(db).list_for_notifications()
+    recipients = [
+        NotificationRecipientItem(telegram_id=u.telegram_id, lang=u.selected_language or "en")
+        for u in users
+    ]
+    # For a product broadcast, hand the bot the slug (deep link) and the
+    # per-language titles so it can localize the message; the bot falls back
+    # to the "en" title and then the notification title when one is missing.
+    product_slug = None
+    titles: dict[str, str] = {}
+    notif = await NotificationRepository(db).get_by_id(notification_id)
+    if notif and notif.product_id:
+        product = (
+            await db.execute(select(Product.slug).where(Product.id == notif.product_id))
+        ).scalars().first()
+        product_slug = product
+        rows = await db.execute(
+            select(ProductTranslation.language_code, ProductTranslation.title)
+            .where(ProductTranslation.product_id == notif.product_id)
+        )
+        titles = {code: title for code, title in rows.all()}
+    return NotificationRecipientsResponse(
+        recipients=recipients, product_slug=product_slug, titles=titles
+    )

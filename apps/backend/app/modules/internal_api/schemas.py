@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional, Literal, List
-from pydantic import BaseModel
+from typing import Optional, Literal, List, Dict
+from pydantic import BaseModel, Field
 
 
 class PreCheckoutRequest(BaseModel):
@@ -76,8 +76,15 @@ class ActiveAdminIdsResponse(BaseModel):
     admin_telegram_ids: List[int]
 
 
+class NotificationRecipientItem(BaseModel):
+    telegram_id: int
+    lang: str = "en"
+
+
 class NotificationRecipientsResponse(BaseModel):
-    user_telegram_ids: List[int]
+    recipients: List[NotificationRecipientItem]
+    product_slug: Optional[str] = None
+    titles: Dict[str, str] = Field(default_factory=dict)
 
 
 class PopNotificationResponse(BaseModel):
