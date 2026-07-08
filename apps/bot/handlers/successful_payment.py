@@ -3,6 +3,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 from ..http_client import api_client
 from ..bot_instance import bot
+from ..delivery import deliver_videos
 
 logger = logging.getLogger(__name__)
 
@@ -35,4 +36,5 @@ async def process_successful_payment(message: Message):
                 await bot.send_message(user_telegram_id, message_text[i:i+4000])
         except Exception as e:
             logger.warning("send delivery message failed: %s", e)
+        await deliver_videos(user_telegram_id, result.get("channel_id"), result.get("videos") or [])
     await message.answer("Payment successful! You can find your videos in My purchases.")

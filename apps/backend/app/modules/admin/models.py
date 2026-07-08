@@ -71,6 +71,8 @@ class Setting(Base):
     sub_price_year_stars: Mapped[int] = mapped_column(Integer, default=2499)
     # OrbChain webhook signing secret — pushed from the merchant dashboard, never exposed to the client.
     orbchain_webhook_secret: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Private channel the bot copies purchased videos from (numeric id, e.g. -100…).
+    delivery_channel_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

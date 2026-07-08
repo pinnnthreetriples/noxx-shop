@@ -351,7 +351,7 @@ export function useNoxx() {
       if (o.status !== 'paid') continue // pending/failed checkouts are not purchases
       for (const it of o.items || []) {
         const base = recs.find((r) => r.id === it.product_id) ?? fallbackRec(it.product_id, it.title, it.price_stars, starRate)
-        const status: Rec['status'] = it.google_drive_link ? 'downloaded' : 'available'
+        const status: Rec['status'] = (it.google_drive_link || it.tg_delivered) ? 'downloaded' : 'available'
         const existing = byProduct.get(it.product_id)
         if (!existing || status === 'downloaded') byProduct.set(it.product_id, { ...base, status })
       }
