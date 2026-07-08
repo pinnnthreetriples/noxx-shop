@@ -1,7 +1,11 @@
 """SupportTicket admin service - use-case logic."""
+import json
 from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.redis_client import redis_client
 from app.modules.support.models import SupportTicket
+from app.modules.support.repository import SupportTicketRepository, SupportMessageRepository
+from app.modules.users.repository import UserRepository
 from app.modules.admin_api.support_tickets.repository import SupportTicketAdminRepository
 from app.modules.admin_api.filters import AdminListFilters
 
@@ -32,6 +36,35 @@ class SupportTicketAdminService:
         # relationship and trigger a lazy load that async sessions forbid
         ticket = await self.repo.get_by_id(id)
         return self._serialize(ticket) if ticket else None
+
+    async def reply(self, admin, id: int, text: str) -> Optional[Dict[str, Any]]:
+        """Store the owner's reply as an `admin` message, mark the ticket
+        answered, and deliver the text to the user via the bot delivery queue."""
+        ticket = await self.repo.get_by_id(id)
+        if not ticket:
+            return None
+        user = await UserRepository(self.db).get_by_id(ticket.user_id)
+        await SupportMessageRepository(self.db).create(
+            ticket_id=id, sender_type="admin", sender_id=admin.id, text=text,
+        )
+        await SupportTicketRepository(self.db).mark_answered(id)
+        await self.db.commit()
+
+        delivered = False
+        if user and user.telegram_id:
+            await redis_client.lpush("deliveries:queue", json.dumps({
+                "user_telegram_id": user.telegram_id,
+                "message_text": f"Ответ поддержки:\n{text}",
+            }))
+            delivered = True
+
+        # Drop cached instances so the re-fetch reloads the messages
+        # collection with the new admin reply included.
+        self.db.expunge_all()
+        ticket = await self.repo.get_by_id(id)
+        result = self._serialize(ticket)
+        result["delivered"] = delivered
+        return result
 
     @staticmethod
     def _serialize(t: SupportTicket) -> Dict[str, Any]:

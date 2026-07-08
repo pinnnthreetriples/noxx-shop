@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import {
   List, Datagrid, TextField, DateField, EditButton,
   Edit, SimpleForm, SelectInput, SelectField, TextInput,
-  Toolbar, SaveButton, useRecordContext,
+  Toolbar, SaveButton, Button, useRecordContext, useNotify, useRefresh,
 } from 'react-admin'
 
 // Backend has no DELETE /admin/support_tickets — hide react-admin's default delete button.
 const SaveOnlyToolbar = () => <Toolbar><SaveButton /></Toolbar>
+
+const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const statusChoices = [
   { id: 'open', name: 'Открыт' },
@@ -49,6 +52,60 @@ const MessagesThread = () => {
   )
 }
 
+// Reply to the ticket author; delivered to the user via the bot.
+// Mirrors the backend capability: POST /admin/support_tickets/{id}/reply.
+const ReplyBox = () => {
+  const record = useRecordContext<{ id: number }>()
+  const notify = useNotify()
+  const refresh = useRefresh()
+  const [text, setText] = useState('')
+  const [loading, setLoading] = useState(false)
+  if (!record) return null
+  const handleClick = async () => {
+    const body = text.trim()
+    if (!body) return
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('admin_token')
+      const res = await fetch(`${apiUrl}/admin/support_tickets/${record.id}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ text: body }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      notify(
+        data.delivered ? 'Ответ отправлен пользователю' : 'Ответ сохранён (пользователь недоступен в боте)',
+        { type: data.delivered ? 'success' : 'warning' },
+      )
+      setText('')
+      refresh()
+    } catch (err) {
+      notify(
+        `Не удалось отправить ответ: ${err instanceof Error ? err.message : 'неизвестная ошибка'}`,
+        { type: 'error' },
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <div style={{ width: '100%', marginBottom: 16 }}>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Введите ответ пользователю…"
+        rows={3}
+        style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,.2)', fontFamily: 'inherit', fontSize: 14 }}
+      />
+      <Button label="Отправить ответ" onClick={handleClick} disabled={loading || !text.trim()} />
+    </div>
+  )
+}
+
 export const SupportTicketList = () => (
   <List>
     <Datagrid rowClick="edit" bulkActionButtons={false}>
@@ -66,6 +123,7 @@ export const SupportTicketEdit = () => (
   <Edit>
     <SimpleForm toolbar={<SaveOnlyToolbar />}>
       <MessagesThread />
+      <ReplyBox />
       <SelectInput source="status" choices={statusChoices} />
       <TextInput source="topic" disabled />
     </SimpleForm>
