@@ -1,14 +1,18 @@
 """Admin media upload: covers (images) and short preview videos.
 
-Files land in MEDIA_ROOT (the shared media_data volume) and are served by the
-media-server container. The DB stores the relative path; the miniapp prefixes
-it with its media base URL.
+When R2 is configured, files go to Cloudflare R2 and the DB stores the public
+CDN URL (served from r2_public_base_url). Otherwise they land in MEDIA_ROOT (the
+shared media_data volume) served by the media-server container — the dev/test
+fallback. Either way the DB stores a value the miniapp can use directly.
 """
+import asyncio
+import mimetypes
 import os
 import uuid
 
 from fastapi import APIRouter, HTTPException, UploadFile
 
+from app.core import r2
 from app.core.config import settings
 
 router = APIRouter(tags=["admin-uploads"])
@@ -26,8 +30,19 @@ async def upload_media(file: UploadFile):
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail=f"File type {ext or '?'} not allowed")
-    name = f"uploads/{uuid.uuid4().hex}{ext}"
-    dest = os.path.join(MEDIA_ROOT, name)
+    if file.size and file.size > MAX_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 200MB)")
+
+    key = f"uploads/{uuid.uuid4().hex}{ext}"
+    content_type = mimetypes.guess_type(key)[0] or "application/octet-stream"
+
+    if r2.r2_enabled():
+        await file.seek(0)
+        url = await asyncio.to_thread(r2.upload_fileobj, file.file, key, content_type)
+        return {"path": key, "url": url}
+
+    # Local-disk fallback (dev/tests). Enforce the size cap while streaming.
+    dest = os.path.join(MEDIA_ROOT, key)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     written = 0
     with open(dest, "wb") as out:
@@ -39,4 +54,4 @@ async def upload_media(file: UploadFile):
                 raise HTTPException(status_code=413, detail="File too large (max 200MB)")
             out.write(chunk)
     base = settings.media_public_url.rstrip("/")
-    return {"path": name, "url": f"{base}/{name}" if base else f"/{name}"}
+    return {"path": key, "url": f"{base}/{key}" if base else f"/{key}"}
