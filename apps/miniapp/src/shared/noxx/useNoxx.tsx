@@ -283,7 +283,16 @@ export function useNoxx() {
 
   const statusDown: React.CSSProperties = { padding: '3px 9px', borderRadius: '999px', background: 'rgba(86,222,160,.14)', color: '#56dea0', fontSize: '11.5px', fontWeight: 700 }
   const statusAvail: React.CSSProperties = { padding: '3px 9px', borderRadius: '999px', background: 'rgba(255,255,255,.08)', color: '#b7adb5', fontSize: '11.5px', fontWeight: 700 }
-  const tagStyle: React.CSSProperties = { padding: '5px 11px', borderRadius: '999px', background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.08)', color: '#d7cdd6', fontSize: '12.5px', fontWeight: 600 }
+  // category chips always carry a colour — Premium pink / Popular amber / New mint, others a neutral accent; never flat grey
+  const tagStyleFor = (label: string): React.CSSProperties => {
+    const base: React.CSSProperties = { padding: '5px 11px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 600 }
+    switch (label.toLowerCase()) {
+      case 'premium': return { ...base, background: 'rgba(255,120,180,.13)', border: '1px solid rgba(255,120,180,.32)', color: '#ff9ecb' }
+      case 'popular': return { ...base, background: 'rgba(255,170,80,.13)', border: '1px solid rgba(255,170,80,.32)', color: '#ffc36e' }
+      case 'new': return { ...base, background: 'rgba(90,220,170,.13)', border: '1px solid rgba(90,220,170,.32)', color: '#8fe8cc' }
+      default: return { ...base, background: 'rgba(150,130,220,.13)', border: '1px solid rgba(150,130,220,.30)', color: '#c4b8e8' }
+    }
+  }
 
   const vmVideo = (rec: Rec) => {
     const inCart = cartIds.has(rec.id)
@@ -450,7 +459,7 @@ export function useNoxx() {
   const detail = {
     id: dRec.id, bg: { position: 'absolute', inset: 0, background: dRec.bg } as React.CSSProperties,
     title: dRec.title, desc: dRec.desc, viewsFull: dRec.viewsFull, purchases: dRec.purchasesStat, stars: dRec.stars,
-    tagObjs: tagLabels.map((label) => ({ label, style: tagStyle })),
+    tagObjs: tagLabels.map((label) => ({ label, style: tagStyleFor(label) })),
     previewUrl: rawPreview ? (/^https?:\/\//.test(rawPreview) ? rawPreview : MEDIA_BASE + (rawPreview.startsWith('/') ? '' : '/') + rawPreview) : '',
     inCart: cartIds.has(dRec.id),
     owned: detailOwned,
