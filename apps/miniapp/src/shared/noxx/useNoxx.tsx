@@ -240,10 +240,12 @@ export function useNoxx() {
 
   // Two-way support: the user's tickets with their full message thread (user +
   // admin). Polled so the owner's replies appear while the screen is open.
+  const onSupport = loc.pathname === '/support'
   const supportTicketsQ = useQuery({
     queryKey: ['support-tickets'],
     queryFn: async () => (await api.get<SupportTicket[]>('/support/tickets')).data,
-    refetchInterval: 15_000,
+    enabled: onSupport,
+    refetchInterval: onSupport ? 15_000 : false,
   })
   const supportReplyMut = useMutation({
     mutationFn: async (p: { ticketId: number; text: string }) =>

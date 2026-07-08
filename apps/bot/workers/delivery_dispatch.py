@@ -8,12 +8,15 @@ logger = logging.getLogger(__name__)
 
 
 def _build_keyboard(button):
-    """Inline web-app button from a `{text, url}` payload; None if absent/invalid."""
-    if not isinstance(button, dict) or not button.get("url"):
+    """Inline web-app button from a `{text, url}` payload. Requires an https url
+    (Telegram rejects non-https WebApp buttons), so a misconfigured WEBAPP_URL
+    degrades to a plain-text message instead of a failed send."""
+    url = button.get("url") if isinstance(button, dict) else None
+    if not url or not url.startswith("https://"):
         return None
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=button.get("text") or "Open",
-                              web_app=WebAppInfo(url=button["url"]))],
+                              web_app=WebAppInfo(url=url))],
     ])
 
 
