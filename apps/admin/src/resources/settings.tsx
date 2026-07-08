@@ -1,53 +1,143 @@
-import { Edit, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput } from 'react-admin'
+import {
+  Edit,
+  TabbedForm,
+  FormTab,
+  TextInput,
+  NumberInput,
+  BooleanInput,
+  SelectInput,
+  FormDataConsumer,
+} from 'react-admin'
+import { Box, Typography } from '@mui/material'
+
+const LANGUAGES = [
+  { id: 'en', name: 'English' },
+  { id: 'ru', name: 'Русский' },
+  { id: 'de', name: 'Deutsch' },
+  { id: 'el', name: 'Ελληνικά' },
+  { id: 'ro', name: 'Română' },
+  { id: 'bg', name: 'Български' },
+  { id: 'mo', name: 'Moldovenească' },
+  { id: 'sr', name: 'Српски' },
+  { id: 'tr', name: 'Türkçe' },
+]
+
+const rateOf = (fd: Record<string, unknown>): number => {
+  if (fd.stars_to_usd_mode === 'manual' && fd.manual_stars_to_usd_rate) {
+    return Number(fd.manual_stars_to_usd_rate)
+  }
+  return Number(fd.star_usd_rate) || 0
+}
+
+const UsdHint = ({ fd, source }: { fd: Record<string, unknown>; source: string }) => {
+  const rate = rateOf(fd)
+  const stars = Number(fd[source])
+  if (!rate || !stars) return null
+  return (
+    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1, mb: 2 }}>
+      ≈ ${(stars * rate).toFixed(2)}
+    </Typography>
+  )
+}
 
 const SettingsPage = () => (
   <Edit resource="settings" id={1} redirect={false} title="Настройки">
-    <SimpleForm>
-      <TextInput source="bot_name" label="Название бота" fullWidth />
-      <BooleanInput source="support_enabled" label="Поддержка включена" />
-      <BooleanInput source="content_18_plus_enabled" label="Контент 18+ включён" />
-      <SelectInput
-        source="default_language"
-        label="Язык по умолчанию"
-        choices={[
-          { id: 'ru', name: 'Русский' },
-          { id: 'en', name: 'Английский' },
-        ]}
-      />
-      <SelectInput
-        source="stars_to_usd_mode"
-        label="Режим курса Stars → USD"
-        choices={[
-          { id: 'manual', name: 'Вручную' },
-          { id: 'auto', name: 'Автоматически' },
-        ]}
-      />
-      <NumberInput source="manual_stars_to_usd_rate" label="Курс Stars → USD (вручную)" />
-      <BooleanInput
-        source="withdrawal_commission_enabled"
-        label="Компенсировать комиссию Telegram при выводе"
-        helperText="Звёзды при выводе стоят примерно на 35% дешевле. Включи — и покупатель заплатит больше на эту комиссию, а тебе придёт твоя базовая цена (500⭐ → 770⭐)."
-      />
-      <NumberInput
-        source="withdrawal_commission_percent"
-        label="Комиссия при выводе (%)"
-        helperText="Обычно ~35. Цена для покупателя = базовая ÷ (1 − процент/100)."
-      />
-      <NumberInput source="max_discount_percent" label="Макс. скидка (%)" />
-      <NumberInput source="discount_first_purchase_percent" label="Скидка на первую покупку (%)" />
-      <NumberInput source="discount_bulk_percent" label="Скидка за крупный заказ (%)" />
-      <NumberInput source="discount_bulk_min_items" label="Крупный заказ: от скольких видео" />
-      <NumberInput source="discount_loyalty_percent" label="Постоянная скидка (%)" />
-      <NumberInput source="discount_loyalty_min_items" label="Постоянная скидка: от скольких купленных видео" />
-      <NumberInput source="sub_price_week_stars" label="Подписка: неделя (Stars)" />
-      <NumberInput source="sub_price_month_stars" label="Подписка: месяц (Stars)" />
-      <NumberInput source="sub_price_year_stars" label="Подписка: год (Stars)" />
-      <TextInput source="terms_text_en" label="Текст условий использования" multiline fullWidth />
-      <TextInput source="refund_policy_text_en" label="Текст политики возврата" multiline fullWidth />
-      <BooleanInput source="notifications_enabled_by_default" label="Уведомления включены по умолчанию" />
-      <BooleanInput source="subscription_coming_soon_enabled" label="Подписка «скоро» включена" />
-      <TextInput source="subscription_coming_soon_text" label="Текст «Подписка скоро»" multiline fullWidth />
-    </SimpleForm>
+    <TabbedForm>
+      <FormTab label="Общие">
+        <TextInput source="bot_name" label="Название бота" />
+        <SelectInput
+          source="default_language"
+          label="Язык по умолчанию"
+          choices={LANGUAGES}
+          helperText="Язык витрины до того, как пользователь выберет свой."
+        />
+        <BooleanInput source="notifications_enabled_by_default" label="Уведомления включены по умолчанию" />
+      </FormTab>
+
+      <FormTab label="Цены и Stars">
+        <SelectInput
+          source="stars_to_usd_mode"
+          label="Режим курса Stars → USD"
+          choices={[
+            { id: 'manual', name: 'Вручную' },
+            { id: 'auto', name: 'Стандартный (фиксированный)' },
+          ]}
+          helperText="«Стандартный» — фиксированный встроенный курс. «Вручную» — ваш курс ниже."
+        />
+        <FormDataConsumer>
+          {({ formData }) =>
+            formData.stars_to_usd_mode === 'manual' ? (
+              <NumberInput source="manual_stars_to_usd_rate" label="Курс Stars → USD (вручную)" />
+            ) : null
+          }
+        </FormDataConsumer>
+        <BooleanInput
+          source="withdrawal_commission_enabled"
+          label="Компенсировать комиссию Telegram при выводе"
+          helperText="Звёзды при выводе стоят примерно на 35% дешевле. Включи — и покупатель заплатит больше на эту комиссию, а тебе придёт твоя базовая цена (500⭐ → 770⭐)."
+        />
+        <FormDataConsumer>
+          {({ formData }) =>
+            formData.withdrawal_commission_enabled ? (
+              <NumberInput
+                source="withdrawal_commission_percent"
+                label="Комиссия при выводе (%)"
+                min={0}
+                max={100}
+                helperText="Обычно ~35. Цена для покупателя = базовая ÷ (1 − процент/100)."
+              />
+            ) : null
+          }
+        </FormDataConsumer>
+        <NumberInput source="sub_price_week_stars" label="Подписка: неделя (Stars)" min={1} />
+        <FormDataConsumer>
+          {({ formData }) => <UsdHint fd={formData} source="sub_price_week_stars" />}
+        </FormDataConsumer>
+        <NumberInput source="sub_price_month_stars" label="Подписка: месяц (Stars)" min={1} />
+        <FormDataConsumer>
+          {({ formData }) => <UsdHint fd={formData} source="sub_price_month_stars" />}
+        </FormDataConsumer>
+        <NumberInput source="sub_price_year_stars" label="Подписка: год (Stars)" min={1} />
+        <FormDataConsumer>
+          {({ formData }) => <UsdHint fd={formData} source="sub_price_year_stars" />}
+        </FormDataConsumer>
+      </FormTab>
+
+      <FormTab label="Скидки">
+        <NumberInput
+          source="max_discount_percent"
+          label="Макс. скидка (%)"
+          min={0}
+          max={100}
+          helperText="Глобальный потолок: итоговая скидка не превысит это значение."
+        />
+        <NumberInput source="discount_first_purchase_percent" label="Скидка на первую покупку (%)" min={0} max={100} />
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <NumberInput source="discount_bulk_percent" label="Скидка за крупный заказ (%)" min={0} max={100} />
+          <NumberInput source="discount_bulk_min_items" label="Крупный заказ: от скольких видео" min={1} />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <NumberInput source="discount_loyalty_percent" label="Постоянная скидка (%)" min={0} max={100} />
+          <NumberInput source="discount_loyalty_min_items" label="Постоянная скидка: от скольких купленных видео" min={1} />
+        </Box>
+      </FormTab>
+
+      <FormTab label="Подписка">
+        <BooleanInput source="subscription_coming_soon_enabled" label="Подписка «скоро» включена" />
+        <FormDataConsumer>
+          {({ formData }) =>
+            formData.subscription_coming_soon_enabled ? (
+              <TextInput source="subscription_coming_soon_text" label="Текст «Подписка скоро»" multiline fullWidth />
+            ) : null
+          }
+        </FormDataConsumer>
+      </FormTab>
+
+      <FormTab label="Тексты">
+        <TextInput source="terms_text_en" label="Текст условий использования" multiline fullWidth />
+        <TextInput source="refund_policy_text_en" label="Текст политики возврата" multiline fullWidth />
+      </FormTab>
+    </TabbedForm>
   </Edit>
 )
 
