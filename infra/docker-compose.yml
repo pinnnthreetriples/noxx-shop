@@ -64,6 +64,7 @@ services:
       ORBCHAIN_WEBHOOK_SECRET: ${ORBCHAIN_WEBHOOK_SECRET}
       STAR_USD_RATE: ${STAR_USD_RATE:-0.02}
       MYMEMORY_EMAIL: ${MYMEMORY_EMAIL:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "8000:8000"
     depends_on:
@@ -89,6 +90,7 @@ services:
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-change-me-internal-secret}
       TICKET_POLL_INTERVAL_SEC: ${TICKET_POLL_INTERVAL_SEC:-10}
       NOTIFICATION_POLL_INTERVAL_SEC: ${NOTIFICATION_POLL_INTERVAL_SEC:-5}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       backend:
         condition: service_started
@@ -100,6 +102,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${BACKEND_PUBLIC_URL}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -118,6 +121,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_TELEGRAM_BOT_USERNAME: ${BOT_USERNAME}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     restart: unless-stopped
     ports:
       - "5175:80"

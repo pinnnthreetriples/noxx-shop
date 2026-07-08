@@ -13,6 +13,8 @@ env:
   # baked into the frontend bundles at build time (public values, not secrets)
   BACKEND_PUBLIC_URL: https://api.noxxshop.com
   BOT_USERNAME: noxx_video_bot
+  # Sentry DSN is public by design; empty until the repo secret is set (no-op).
+  VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
 
 jobs:
   build-push:
@@ -35,8 +37,8 @@ jobs:
           docker build -t "$REGISTRY/noxx-backend:latest" apps/backend
           docker build -t "$REGISTRY/noxx-media-server:latest" -f apps/backend/Dockerfile.media apps/backend
           docker build -t "$REGISTRY/noxx-bot:latest" apps/bot
-          docker build -t "$REGISTRY/noxx-admin:latest" --build-arg "VITE_API_BASE_URL=$BACKEND_PUBLIC_URL" apps/admin
-          docker build -t "$REGISTRY/noxx-miniapp:latest" --build-arg "VITE_TELEGRAM_BOT_USERNAME=$BOT_USERNAME" apps/miniapp
+          docker build -t "$REGISTRY/noxx-admin:latest" --build-arg "VITE_API_BASE_URL=$BACKEND_PUBLIC_URL" --build-arg "VITE_SENTRY_DSN=$VITE_SENTRY_DSN" apps/admin
+          docker build -t "$REGISTRY/noxx-miniapp:latest" --build-arg "VITE_TELEGRAM_BOT_USERNAME=$BOT_USERNAME" --build-arg "VITE_SENTRY_DSN=$VITE_SENTRY_DSN" apps/miniapp
           for img in backend media-server bot admin miniapp; do
             docker push "$REGISTRY/noxx-$img:latest"
           done

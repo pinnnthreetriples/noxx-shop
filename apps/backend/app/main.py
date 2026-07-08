@@ -1,8 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import sentry_sdk
 
 from app.core.config import settings
+
+# Errors-only; FastAPI/Starlette instrumentation auto-enables. No-op without a DSN.
+if settings.sentry_dsn:
+    sentry_sdk.init(dsn=settings.sentry_dsn, environment=settings.app_env, send_default_pii=False)
 from app.core.database import engine
 from app.models import Base
 from app.modules.catalog.router import router as catalog_router
