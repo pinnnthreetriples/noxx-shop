@@ -10,7 +10,7 @@ body {
   border-radius: 46px; overflow: hidden; background: #0a070c;
   box-shadow: 0 40px 120px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
 }
-@media (max-width: 430px), (max-height: 880px) { .noxx-frame { border-radius: 0; max-height: 100vh; height: 100vh; width: 100vw; } body { padding: 0; } }
+@media (max-width: 430px), (max-height: 880px) { .noxx-frame { border-radius: 0; height: var(--tg-vh, 100dvh); max-height: var(--tg-vh, 100dvh); width: 100vw; } body { padding: 0; } }
 
   *{box-sizing:border-box;scrollbar-width:none;-webkit-tap-highlight-color:transparent}
   *::-webkit-scrollbar{width:0;height:0;display:none}

@@ -4,6 +4,7 @@ import * as I18N from 'react-i18next'
 import { startDomTranslator, setDomLang } from '../shared/i18n/domI18n'
 
 import * as Store from '../shared/lib/store'
+import { initTelegram } from '../shared/lib/telegram'
 import BottomNav from '../shared/noxx/BottomNav'
 import ErrorBoundary from '../shared/noxx/ErrorBoundary'
 import * as Motion from '../shared/noxx/motion'
@@ -91,6 +92,10 @@ function App() {
   const language = Store.useAppStore((s) => s.language)
   const langChosen = Store.useAppStore((s) => s.langChosen)
   const ageConfirmed = Store.useAppStore((s) => s.ageConfirmed)
+
+  // ready + expand + track Telegram's viewport height (fixes the bottom nav being
+  // pushed off-screen because 100vh > the visible area in the iOS webview).
+  React.useEffect(() => initTelegram(), [])
 
   React.useEffect(() => {
     i18n.changeLanguage(language)

@@ -12,6 +12,7 @@ export interface TelegramWebApp {
   themeParams: ThemeParams
   isExpanded: boolean
   viewportHeight: number
+  viewportStableHeight: number
   ready: () => void
   expand: () => void
   close: () => void
@@ -75,9 +76,21 @@ export function initTelegram(): () => void {
   tg.ready()
   tg.expand()
   applyTelegramTheme()
+  // Pin the frame to Telegram's real visible height. In the iOS webview 100vh is
+  // taller than the visible area, so a bottom-anchored nav lands off-screen —
+  // track viewportStableHeight into --tg-vh instead (see .noxx-frame).
+  const applyViewport = () => {
+    const h = tg.viewportStableHeight || tg.viewportHeight
+    if (h) document.documentElement.style.setProperty('--tg-vh', `${h}px`)
+  }
+  applyViewport()
   const onThemeChanged = () => applyTelegramTheme()
   tg.onEvent('themeChanged', onThemeChanged)
-  return () => tg.offEvent('themeChanged', onThemeChanged)
+  tg.onEvent('viewportChanged', applyViewport)
+  return () => {
+    tg.offEvent('themeChanged', onThemeChanged)
+    tg.offEvent('viewportChanged', applyViewport)
+  }
 }
 
 export type HapticStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'
