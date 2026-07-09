@@ -33,6 +33,9 @@ jobs:
       - run: ruff check .
       - run: ruff check --config ruff.toml ../bot
       - run: python -m pytest -q
+      - name: pip-audit (advisory)
+        continue-on-error: true
+        run: pip install pip-audit && pip-audit -r requirements.txt
 
   miniapp:
     name: miniapp (tsc + build)
@@ -50,6 +53,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: npm audit (advisory)
+        continue-on-error: true
+        run: npm audit --audit-level=high
 
   admin:
     name: admin (tsc + build)
@@ -67,6 +73,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: npm audit (advisory)
+        continue-on-error: true
+        run: npm audit --audit-level=high
 
   actionlint:
     name: actionlint (workflow lint)

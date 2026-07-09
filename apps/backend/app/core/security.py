@@ -46,9 +46,9 @@ def get_user_from_init_data(init_data: str) -> dict:
     return json.loads(user_json)
 
 
-def create_admin_token(admin_id: int, days: int = 7) -> str:
+def create_admin_token(admin_id: int, hours: int = 12) -> str:
     return pyjwt.encode(
-        {"sub": str(admin_id), "exp": datetime.now(timezone.utc) + timedelta(days=days)},
+        {"sub": str(admin_id), "exp": datetime.now(timezone.utc) + timedelta(hours=hours)},
         settings.admin_jwt_secret or settings.jwt_secret,
         algorithm="HS256",
     )

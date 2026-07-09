@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.ratelimit import too_many_attempts
 from app.auth import get_current_user
 from app.modules.orders.schemas import (
     CartEstimateIn,
@@ -42,6 +43,8 @@ async def checkout_create(
     user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if await too_many_attempts(f"checkout:{user.id}", limit=20, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Too many requests, slow down")
     try:
         return await OrderService(db).create_checkout(
             user, body.product_ids, body.promo_code, body.provider
@@ -56,6 +59,8 @@ async def subscription_checkout(
     user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if await too_many_attempts(f"checkout:{user.id}", limit=20, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Too many requests, slow down")
     try:
         return await OrderService(db).create_subscription_checkout(user, body.plan, body.provider)
     except ValueError as e:
@@ -131,4 +136,6 @@ async def check_payment(
     db: AsyncSession = Depends(get_db),
 ):
     """Poll OrbChain and fulfill the order if it's been paid (crypto checkout)."""
+    if await too_many_attempts(f"checkpay:{user.id}", limit=60, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Too many requests, slow down")
     return await OrderService(db).check_orbchain_payment(user, order_id)

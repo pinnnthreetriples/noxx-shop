@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 from app.core.database import get_db
+from app.core.ratelimit import too_many_attempts
 from app.auth import get_current_user
 from app.modules.support.schemas import SupportTicketIn, SupportTicketOut, SupportTicketDetail, SupportMessageIn, SupportMessageOut
 from app.models import SupportTicket, SupportMessage
@@ -13,6 +14,8 @@ router = APIRouter(prefix="")
 
 @router.post("/support/tickets", response_model=SupportTicketOut)
 async def create_support_ticket(body: SupportTicketIn, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if await too_many_attempts(f"support-ticket:{user.id}", limit=10, window_seconds=300):
+        raise HTTPException(status_code=429, detail="Too many requests, slow down")
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="User is blocked")
     ticket = SupportTicket(user_id=user.id, topic=body.topic, status="open")
