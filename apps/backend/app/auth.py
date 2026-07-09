@@ -1,58 +1,15 @@
-import hmac
-import hashlib
-import json
-import urllib.parse
-import time
-import jwt as pyjwt
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import Request, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.core.config import settings
 from app.core.database import get_db
+from app.core.security import get_user_from_init_data, decode_admin_token
 from app.models import User, Admin
 from app.modules.catalog.service import SUPPORTED_LANGUAGES
 
 security = HTTPBearer(auto_error=False)
-
-
-def _parse_init_data(init_data: str) -> dict:
-    result = {}
-    for pair in init_data.split("&"):
-        if "=" in pair:
-            key, value = pair.split("=", 1)
-            result[urllib.parse.unquote(key)] = urllib.parse.unquote(value)
-    return result
-
-
-def _validate_init_data(init_data_raw: str) -> dict:
-    parsed = _parse_init_data(init_data_raw)
-    hash_value = parsed.pop("hash", None)
-    if not hash_value:
-        raise HTTPException(status_code=401, detail="Missing hash in initData")
-
-    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
-    secret_key = hmac.new(b"WebAppData", settings.bot_token.encode(), hashlib.sha256).digest()
-    expected_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
-
-    if not hmac.compare_digest(expected_hash, hash_value):
-        raise HTTPException(status_code=401, detail="Invalid initData signature")
-
-    auth_date = int(parsed.get("auth_date", 0))
-    if time.time() - auth_date > settings.initdata_max_age_seconds:
-        raise HTTPException(status_code=401, detail="initData expired")
-
-    return parsed
-
-
-def _get_user_from_init_data(init_data: str) -> dict:
-    parsed = _validate_init_data(init_data)
-    user_json = parsed.get("user")
-    if not user_json:
-        raise HTTPException(status_code=401, detail="Missing user in initData")
-    return json.loads(user_json)
 
 
 async def get_current_user(
@@ -68,7 +25,10 @@ async def get_current_user(
     if not token:
         raise HTTPException(status_code=401, detail="Missing Telegram initData")
 
-    user_info = _get_user_from_init_data(token)
+    try:
+        user_info = get_user_from_init_data(token)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e) or "Invalid Telegram initData") from None
     telegram_id = user_info.get("id")
     if not telegram_id:
         raise HTTPException(status_code=401, detail="Invalid user data")
@@ -114,7 +74,7 @@ async def get_current_admin(
     if not token:
         raise HTTPException(status_code=401, detail="Missing admin token")
     try:
-        payload = pyjwt.decode(token, settings.admin_jwt_secret or settings.jwt_secret, algorithms=["HS256"])
+        payload = decode_admin_token(token)
         admin_id = payload.get("sub")
         if not admin_id:
             raise HTTPException(status_code=401, detail="Invalid token")
