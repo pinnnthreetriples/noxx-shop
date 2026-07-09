@@ -3,13 +3,22 @@ import contextlib
 import logging
 import sentry_sdk
 from aiogram import Dispatcher
+from aiogram.exceptions import TelegramNetworkError
 
 from .config import SENTRY_DSN, APP_ENV
 from .bot_instance import bot
 
 # Errors-only; the logging integration reports the logger.exception calls below.
+# Drop shutdown task-cancellation and transient api.telegram.org connectivity
+# blips — neither is an actionable defect, they just spam Sentry. (Kept inside the
+# `if` so the imports below stay E402-clean.)
 if SENTRY_DSN:
-    sentry_sdk.init(dsn=SENTRY_DSN, environment=APP_ENV, send_default_pii=False)
+    def _before_send(event, hint):
+        exc = hint.get("exc_info")
+        if exc and isinstance(exc[1], (asyncio.CancelledError, TelegramNetworkError)):
+            return None
+        return event
+    sentry_sdk.init(dsn=SENTRY_DSN, environment=APP_ENV, send_default_pii=False, before_send=_before_send)
 from .http_client import api_client
 from .handlers import start as handlers_start
 from .handlers import pre_checkout, successful_payment, admin_reply
@@ -35,7 +44,7 @@ def _spawn(coro):
     task = asyncio.create_task(coro)
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
-    task.add_done_callback(lambda t: t.exception() and logger.exception("background task crashed: %r", t.exception()))
+    task.add_done_callback(lambda t: not t.cancelled() and t.exception() and logger.exception("background task crashed: %r", t.exception()))
     return task
 
 

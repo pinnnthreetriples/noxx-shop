@@ -22,11 +22,11 @@ const STATUS_STYLE: Record<string, { key: string; color: string }> = {
   closed: { key: 'supportStatusClosed', color: '#9a9098' },
 }
 
-const fmtTime = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+const fmtTime = (iso: string, locale?: string) =>
+  new Date(iso).toLocaleString(locale || undefined, { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 export default function SupportPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const {
     showSupport, backProfile, supportTopics, sendSupport, supportBusy,
     supportTickets, supportLoading, supportError, replySupport, replyBusy,
@@ -117,7 +117,7 @@ export default function SupportPage() {
                   return (
                   <div key={m.id} style={{"display": "flex", "flexDirection": "column", "alignItems": mine ? 'flex-end' : 'flex-start'}}>
                     <div style={{ ...bubbleBase, color: mine ? '#fff' : '#e9e2e8', background: mine ? 'linear-gradient(120deg,#ff5aa0,#ff2e93)' : 'rgba(255,255,255,.06)' }}>{m.text}</div>
-                    <div style={{"marginTop": "4px", "fontSize": "11px", "color": "#6a616b"}}>{(mine ? t('supportYou') : t('support')) + ' · ' + fmtTime(m.created_at)}</div>
+                    <div style={{"marginTop": "4px", "fontSize": "11px", "color": "#6a616b"}}>{(mine ? t('supportYou') : t('support')) + ' · ' + fmtTime(m.created_at, i18n.language)}</div>
                   </div>
                   )
                 })}

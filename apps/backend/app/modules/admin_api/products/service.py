@@ -146,7 +146,7 @@ class ProductAdminService:
             title = payload.get(f"title_{lang}")
             if title:
                 await self.repo.upsert_translation(product.id, lang, title, payload.get(f"description_{lang}"))
-        for tid in payload.get("tag_ids", []):
+        for tid in dict.fromkeys(payload.get("tag_ids") or []):
             await self.repo.add_tag(product.id, tid)
         self.db.add(AdminLog(admin_id=admin.id, action="create_product", entity_type="product", entity_id=product.id))
         await self.db.commit()
@@ -171,7 +171,7 @@ class ProductAdminService:
                 await self.repo.upsert_translation(id, lang, title, payload.get(f"description_{lang}"))
         if "tag_ids" in payload:
             await self.repo.clear_tags(id)
-            for tid in payload["tag_ids"]:
+            for tid in dict.fromkeys(payload["tag_ids"]):
                 await self.repo.add_tag(id, tid)
         self.db.add(AdminLog(admin_id=admin.id, action="update_product", entity_type="product", entity_id=product.id))
         await self.db.commit()
