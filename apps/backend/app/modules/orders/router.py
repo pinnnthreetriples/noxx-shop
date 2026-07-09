@@ -132,14 +132,3 @@ async def check_payment(
 ):
     """Poll OrbChain and fulfill the order if it's been paid (crypto checkout)."""
     return await OrderService(db).check_orbchain_payment(user, order_id)
-
-
-@router.post("/webhook/payment")
-async def webhook_payment(body: dict, db: AsyncSession = Depends(get_db)):
-    try:
-        return await OrderService(db).webhook_payment(
-            body.get("telegram_payment_charge_id"),
-            body.get("provider_payment_charge_id"),
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e

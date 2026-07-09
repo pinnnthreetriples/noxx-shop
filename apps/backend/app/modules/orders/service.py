@@ -480,18 +480,6 @@ class OrderService:
             items=items_out,
         )
 
-    # ----- Webhook payment (existing public endpoint) -----
-
-    async def webhook_payment(self, telegram_charge_id: Optional[str], provider_charge_id: Optional[str]) -> Dict[str, Any]:
-        if not telegram_charge_id and not provider_charge_id:
-            raise ValueError("Missing charge id")
-        payment = await self.payment_repo.find_by_charge_id(telegram_charge_id, provider_charge_id)
-        if payment:
-            await self.payment_repo.mark_paid(payment.id)
-            await self.db.commit()
-            return {"ok": True, "order_id": payment.order_id}
-        return {"ok": False, "detail": "Payment not found"}
-
     # ----- Admin actions -----
 
     async def resend_links(self, order_id: int) -> Dict[str, Any]:
@@ -537,6 +525,7 @@ class OrderService:
         telegram_payment_charge_id: str,
         provider_payment_charge_id: str,
         total_amount: int,
+        paid_usd: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Fulfill an order after successful payment.
@@ -562,6 +551,20 @@ class OrderService:
         order = await self.order_repo.get_by_id(order_id)
         if not order:
             return {"ok": False, "error": "Order not found"}
+
+        # Underpayment guard: OrbChain's signed payment webhook carries the credited
+        # USD in transactions[].amount_usd (its top-level `amount` is null). Only
+        # enforced when a paid amount is supplied — the Telegram Stars path passes
+        # None. 2% tolerance absorbs FX/rounding.
+        if paid_usd is not None:
+            expected_usd = await self._amount_usd(order.paid_stars)
+            if expected_usd and paid_usd < expected_usd * 0.98:
+                logger.warning(
+                    "Rejecting underpaid order %s: paid $%.2f < expected $%.2f",
+                    order_id, paid_usd, expected_usd,
+                )
+                return {"ok": False, "error": "underpaid",
+                        "paid_usd": paid_usd, "expected_usd": expected_usd}
 
         # 1. status pending -> paid
         await self.order_repo.set_status_paid(order_id)

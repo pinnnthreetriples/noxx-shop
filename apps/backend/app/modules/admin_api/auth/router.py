@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
+from app.core.ratelimit import client_ip, too_many_attempts
 from app.auth import get_current_admin
 from app.modules.admin.models import Admin
 from app.modules.admin_api.auth.service import AdminAuthService
@@ -12,12 +13,14 @@ router = APIRouter(prefix="/auth", tags=["admin-auth"])
 
 @router.post("/login", response_model=LoginResponse)
 async def admin_login(request: Request, db: AsyncSession = Depends(get_db)):
+    if await too_many_attempts(f"admin-login:{client_ip(request)}", limit=10, window_seconds=300):
+        raise HTTPException(status_code=429, detail="Too many login attempts, try again later")
     body = await request.json()
     email = body.get("email")
     password = body.get("password")
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password required")
-    
+
     service = AdminAuthService(db)
     token = await service.login(email, password)
     if not token:

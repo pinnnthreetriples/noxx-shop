@@ -1,4 +1,14 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Secrets whose placeholder defaults must never survive into a real deployment:
+# a leaked jwt/admin secret means forgeable tokens, a leaked internal secret means
+# an open internal API. Keyed by field name -> its placeholder value.
+_PLACEHOLDER_SECRETS = {
+    "jwt_secret": "change-me",
+    "admin_jwt_secret": "admin-change-me",
+    "internal_api_secret": "change-me-internal-secret",
+}
 
 
 class Settings(BaseSettings):
@@ -55,6 +65,21 @@ class Settings(BaseSettings):
     r2_public_base_url: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @model_validator(mode="after")
+    def _reject_placeholder_secrets_outside_dev(self):
+        if self.app_env == "development":
+            return self
+        offenders = [
+            name for name, placeholder in _PLACEHOLDER_SECRETS.items()
+            if getattr(self, name) == placeholder
+        ]
+        if offenders:
+            raise ValueError(
+                f"Refusing to start with app_env={self.app_env!r}: placeholder "
+                f"secrets still set ({', '.join(offenders)}). Set them in .env."
+            )
+        return self
 
 
 settings = Settings()
