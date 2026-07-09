@@ -31,9 +31,11 @@ export default function ProductPage() {
         </div>
         <div style={{"padding": "20px 22px 26px"}}>
         <div style={{"fontSize": "30px", "fontWeight": "700", "color": "#fff", "margin": "0 0 14px", "letterSpacing": "-.6px"}}>{detail.title}</div>
+        {((detail.tagObjs||[]).length > 0) && (
         <div style={{"display": "flex", "gap": "9px", "marginBottom": "18px"}}>
           {(detail.tagObjs||[]).map((t, _k0: number) => (<React.Fragment key={_k0}><div style={t.style}>{t.label}</div></React.Fragment>))}
         </div>
+        )}
         <div style={{"display": "flex", "alignItems": "center", "gap": "10px", "color": "#8c828c", "fontSize": "14px", "marginBottom": "16px"}}>
           <div style={{"display": "flex", "alignItems": "center", "gap": "6px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c828c" strokeWidth="1.7"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="2.6" /></svg>{detail.viewsFull} views</div>
           

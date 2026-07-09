@@ -44,9 +44,8 @@ export default function HomePage() {
             </div>
             <div style={{"flex": "1", "minWidth": "0"}}>
               <div style={{"fontSize": "17px", "fontWeight": "600", "color": "#fff", "letterSpacing": "-.2px"}}>{v.title}</div>
-              {(v.cardSub) && (<><div style={{"fontSize": "13px", "color": "#8c828c", "margin": "3px 0 9px", "whiteSpace": "nowrap", "overflow": "hidden", "textOverflow": "ellipsis"}}>{v.cardSub}</div></>)}
-              {(v.hasBadge) && (<><div style={{"display": "flex", "alignItems": "center", "gap": "7px", "marginTop": "9px", "flexWrap": "wrap"}}><div style={v.badgeStyle}>{v.badge}</div></div></>)}
-              <div style={{"display": "flex", "alignItems": "center", "gap": "12px"}}>
+              {(v.hasBadge) && (<><div style={{"display": "flex", "alignItems": "center", "gap": "7px", "marginTop": "4px", "flexWrap": "wrap"}}><div style={v.badgeStyle}>{v.badge}</div></div></>)}
+              <div style={{"display": "flex", "alignItems": "center", "gap": "12px", "marginTop": "8px"}}>
                 <div style={{"display": "flex", "alignItems": "center", "gap": "4px", "color": "#8c828c", "fontSize": "12.5px"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c828c" strokeWidth="1.7" strokeLinejoin="round"><path d="M5 8h14l-1 11.2a2 2 0 0 1-2 1.8H8a2 2 0 0 1-2-1.8Z" /><path d="M8.5 8V6.5a3.5 3.5 0 0 1 7 0V8" /></svg>{v.purchases}</div>
                 <div style={{"display": "flex", "alignItems": "center", "gap": "4px", "color": "#8c828c", "fontSize": "12.5px"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c828c" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>{v.views}</div>
                 <div style={{"display": "flex", "alignItems": "center", "gap": "4px", "marginLeft": "auto"}}>{!payCrypto && (<svg width="16" height="16" viewBox="0 0 24 24" fill="#f7b23b"><path d="M12 2l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.98 6.1 20.16l1.13-6.57L2.45 8.94l6.6-.96z" /></svg>)}<span style={{"fontSize": "15px", "fontWeight": "600", "color": "#f2e9ef"}}>{payCrypto ? v.usd : v.stars}</span></div>
@@ -54,6 +53,7 @@ export default function HomePage() {
             </div>
           </div>
         </React.Fragment>))}
+        {((homeVideos||[]).length > 0) && (<><div data-press="" onClick={seeAll} style={{"display": "flex", "alignItems": "center", "justifyContent": "center", "gap": "6px", "marginTop": "2px", "padding": "14px", "borderRadius": "16px", "background": "rgba(255,255,255,.04)", "border": "1px solid rgba(255,120,180,.35)", "color": "#ff8ec2", "fontSize": "15px", "fontWeight": "600", "cursor": "pointer"}}>All videos <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff8ec2" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg></div></>)}
         <div data-press="" onClick={goSubscription} style={{"position": "relative", "borderRadius": "22px", "overflow": "hidden", "padding": "22px", "marginTop": "18px", "minHeight": "120px", "cursor": "pointer", "border": "1px solid rgba(255,80,160,.22)", "background": "#241019"}}>
           <div style={{"position": "absolute", "inset": "-26px", "background": "url(\"/premium-bg.webp\") center / cover no-repeat", "filter": "blur(9px)"}} />
           <div style={{"position": "absolute", "inset": "0", "background": "linear-gradient(90deg,rgba(20,8,14,.82),rgba(20,8,14,.4) 55%,rgba(20,8,14,.08))"}} />

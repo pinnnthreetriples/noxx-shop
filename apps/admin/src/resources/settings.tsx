@@ -103,7 +103,6 @@ const SettingsPage = () => (
   <Edit resource="settings" id={1} redirect={false} title="Настройки">
     <TabbedForm>
       <FormTab label="Общие">
-        <TextInput source="bot_name" label="Название бота" />
         <SelectInput
           source="default_language"
           label="Язык по умолчанию"
