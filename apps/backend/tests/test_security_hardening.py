@@ -15,9 +15,9 @@ from app.core.ratelimit import client_ip
 from app.main import app
 
 _PLACEHOLDERS = dict(
-    jwt_secret="change-me",
-    admin_jwt_secret="admin-change-me",
-    internal_api_secret="change-me-internal-secret",
+    jwt_secret="change-me",  # noqa: S106
+    admin_jwt_secret="admin-change-me",  # noqa: S106
+    internal_api_secret="change-me-internal-secret",  # noqa: S106
 )
 _REAL = dict(
     jwt_secret="a" * 32,
