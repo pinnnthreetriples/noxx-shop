@@ -78,9 +78,16 @@ if settings.app_env == "development":
         "http://localhost:5175", "http://127.0.0.1:5175",
     ]
 
+# Fail closed: never fall back to "*" (which with allow_credentials is unsafe and
+# browser-rejected anyway). Empty means a misconfigured deploy should surface as a
+# blocked cross-origin call, not silently allow everyone.
+if not _cors_origins:
+    import logging
+    logging.getLogger(__name__).warning("CORS: no allowed origins configured (set telegram_webapp_url / admin_public_url)")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins or ["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
