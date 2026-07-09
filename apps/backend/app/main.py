@@ -86,6 +86,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    # Defense-in-depth on API responses. CSP / frame-ancestors are intentionally
+    # NOT set here — they belong on the miniapp's HTML host (Cloudflare), and a
+    # frame-ancestors:DENY here would break embedding in the Telegram webview.
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+
+
 # Public routers
 app.include_router(catalog_router)
 app.include_router(users_router)

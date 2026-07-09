@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, update, desc, asc
+from sqlalchemy import select, func, update, desc, asc
 from sqlalchemy.orm import selectinload
 from app.modules.orders.models import Order, OrderItem, Payment, Cart, CartItem, OrderStatus
 from app.modules.catalog.models import Product as CatalogProduct
@@ -197,24 +197,6 @@ class PaymentRepository:
         self.db.add(payment)
         await self.db.flush()
         return payment
-
-    async def find_by_charge_id(
-        self,
-        telegram_charge_id: Optional[str] = None,
-        provider_charge_id: Optional[str] = None,
-    ) -> Optional[Payment]:
-        conditions = []
-        if telegram_charge_id:
-            conditions.append(Payment.telegram_payment_charge_id == telegram_charge_id)
-        if provider_charge_id:
-            conditions.append(Payment.provider_payment_charge_id == provider_charge_id)
-        if not conditions:
-            return None
-        result = await self.db.execute(select(Payment).where(or_(*conditions)))
-        return result.scalars().first()
-
-    async def mark_paid(self, payment_id: int) -> None:
-        await self.db.execute(update(Payment).where(Payment.id == payment_id).values(status="paid"))
 
     async def find_by_telegram_charge_id(self, telegram_charge_id: str) -> Optional[Payment]:
         """Idempotency lookup: return existing Payment for this Telegram charge id, if any."""

@@ -480,18 +480,6 @@ class OrderService:
             items=items_out,
         )
 
-    # ----- Webhook payment (existing public endpoint) -----
-
-    async def webhook_payment(self, telegram_charge_id: Optional[str], provider_charge_id: Optional[str]) -> Dict[str, Any]:
-        if not telegram_charge_id and not provider_charge_id:
-            raise ValueError("Missing charge id")
-        payment = await self.payment_repo.find_by_charge_id(telegram_charge_id, provider_charge_id)
-        if payment:
-            await self.payment_repo.mark_paid(payment.id)
-            await self.db.commit()
-            return {"ok": True, "order_id": payment.order_id}
-        return {"ok": False, "detail": "Payment not found"}
-
     # ----- Admin actions -----
 
     async def resend_links(self, order_id: int) -> Dict[str, Any]:
