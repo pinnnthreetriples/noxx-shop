@@ -45,8 +45,9 @@ const SecurityPage = () => {
   const [loading, setLoading] = useState(false)
 
   const loadStatus = useCallback(async () => {
-    const res = await fetch(`${apiUrl}/2fa/status`, { headers: authHeaders() })
-    if (res.ok) setStatus(await res.json())
+    const res = await fetch(`${apiUrl}/auth/2fa/status`, { headers: authHeaders() })
+    // Fall back to a safe default so the page renders instead of spinning forever.
+    setStatus(res.ok ? await res.json() : { enabled: false, required: false })
   }, [])
 
   useEffect(() => {
@@ -56,7 +57,7 @@ const SecurityPage = () => {
   const startSetup = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${apiUrl}/2fa/setup`, { method: 'POST', headers: authHeaders() })
+      const res = await fetch(`${apiUrl}/auth/2fa/setup`, { method: 'POST', headers: authHeaders() })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setSetup(await res.json())
     } catch (err) {
@@ -71,7 +72,7 @@ const SecurityPage = () => {
     setLoading(true)
     setFormError('')
     try {
-      const res = await fetch(`${apiUrl}/2fa/${path}`, {
+      const res = await fetch(`${apiUrl}/auth/2fa/${path}`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ code }),
