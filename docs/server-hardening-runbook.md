@@ -1,5 +1,7 @@
 # Prod host hardening runbook
 
+A consolidated runnable version of the steps below lives in `infra/prod-hardening.ps1`.
+
 A checklist the operator runs **by hand** on the machine that actually runs
 `infra/docker-compose.yml` in production. Nothing here was run against prod — this is a plan to
 execute, not a script that already executed.
