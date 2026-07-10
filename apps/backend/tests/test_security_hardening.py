@@ -132,6 +132,25 @@ def test_credited_usd_sums_only_credited_transactions():
     assert _credited_usd({"type": "payment", "status": "Paid"}) == 0.0
 
 
+def test_credited_usd_falls_back_to_top_level_amount_usd():
+    # No transactions[] -> use the top-level amount_usd (single-tx / envelope shape).
+    from app.modules.payments_orbchain.router import _credited_usd
+    assert _credited_usd({"event_type": "payment.paid", "amount_usd": "12.50"}) == 12.5
+
+
+def test_is_paid_recognizes_v2_and_legacy_shapes():
+    from app.modules.payments_orbchain.router import _is_paid
+    # v2 envelope: event_type / type == payment.paid, or the X-Event-Type header
+    assert _is_paid({"event_type": "payment.paid"}, "") is True
+    assert _is_paid({"type": "payment.paid"}, "") is True
+    assert _is_paid({}, "payment.paid") is True
+    # legacy shape: type == payment + status == paid
+    assert _is_paid({"type": "payment", "status": "Paid"}, "") is True
+    # not a confirmed payment
+    assert _is_paid({"type": "payment", "status": "Paying"}, "") is False
+    assert _is_paid({"event_type": "deposit.credited"}, "") is False
+
+
 async def _aret(v):
     return v
 
