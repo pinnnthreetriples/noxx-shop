@@ -14,6 +14,8 @@ import { AdminLogList } from './resources/adminLogs'
 import { LinkDeliveryLogList } from './resources/linkDeliveryLogs'
 import SettingsPage from './resources/settings'
 import DashboardPage from './resources/dashboard'
+import SecurityPage from './resources/security'
+import LoginPage from './LoginPage'
 import { i18nProvider } from './i18n'
 
 function App() {
@@ -23,6 +25,7 @@ function App() {
       authProvider={authProvider}
       i18nProvider={i18nProvider}
       dashboard={DashboardPage}
+      loginPage={LoginPage}
     >
       <Resource name="products" list={ProductList} edit={ProductEdit} create={ProductCreate} />
       <Resource name="categories" list={CategoryList} edit={CategoryEdit} create={CategoryCreate} />
@@ -36,6 +39,7 @@ function App() {
       <Resource name="admin_logs" list={AdminLogList} options={{ label: 'Логи админов' }} />
       <Resource name="link_delivery_logs" list={LinkDeliveryLogList} options={{ label: 'Отправленные ссылки' }} />
       <Resource name="settings" list={SettingsPage} options={{ label: 'Настройки' }} />
+      <Resource name="security" list={SecurityPage} options={{ label: '2FA' }} />
     </Admin>
   )
 }
