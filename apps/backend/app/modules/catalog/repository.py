@@ -68,6 +68,11 @@ class ProductRepository:
             update(Product).where(Product.id == product_id).values(real_purchases=Product.real_purchases + quantity)
         )
 
+    async def increment_views(self, product_id: int) -> None:
+        await self.db.execute(
+            update(Product).where(Product.id == product_id).values(real_views=Product.real_views + 1)
+        )
+
     async def bulk_increment_purchases(self, items: List[Tuple[int, int]]) -> None:
         """Bump real_purchases for several (product_id, quantity) pairs at once
         (order fulfillment). Small N per order — one UPDATE each is fine."""

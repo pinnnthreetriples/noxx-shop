@@ -31,6 +31,9 @@ class FavoriteService:
         return FavoriteToggleOut(is_favorite=False)
 
     async def record_view(self, user, product_id: int) -> None:
-        """Record that a user viewed a product (upsert into recently_viewed)."""
+        """Record that a user viewed a product (upsert into recently_viewed) and
+        bump the product's real_views counter (admin-only analytics)."""
+        from app.modules.catalog.repository import ProductRepository
         await self.recently_viewed_repo.upsert(user.id, product_id)
+        await ProductRepository(self.db).increment_views(product_id)
         await self.db.commit()

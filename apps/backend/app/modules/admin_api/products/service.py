@@ -39,8 +39,8 @@ class ProductAdminService:
         self.db = db
         self.repo = ProductAdminRepository(db)
     
-    async def list(self, q: Optional[str], status: Optional[str], sort_field: str, order: str, start: int, end: int) -> Dict[str, Any]:
-        f = AdminListFilters(q=q, status=status, sort_field=sort_field, order=order, start=start, end=end)
+    async def list(self, q: Optional[str], status: Optional[str], category_id: Optional[int], sort_field: str, order: str, start: int, end: int) -> Dict[str, Any]:
+        f = AdminListFilters(q=q, status=status, category_id=category_id, sort_field=sort_field, order=order, start=start, end=end)
         items, total = await self.repo.list_with_filters(f)
         return {"data": items, "total": total}
     
@@ -139,6 +139,8 @@ class ProductAdminService:
             google_drive_file_id=payload.get("google_drive_file_id"),
             tg_message_id=payload.get("tg_message_id"),
             trend_score=payload.get("trend_score", 0),
+            display_views=payload.get("display_views") or 0,
+            display_purchases=payload.get("display_purchases") or 0,
             is_premium=payload.get("is_premium", False),
             available_for_subscription=payload.get("available_for_subscription", False),
         )

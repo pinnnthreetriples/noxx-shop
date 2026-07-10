@@ -124,10 +124,13 @@ class SupportService:
         )
         await self.ticket_repo.mark_answered(ticket_id)
         await self.db.commit()
+        from app.modules.users.repository import UserRepository
+        user = await UserRepository(self.db).get_by_id(ticket.user_id)
         return {
             "ok": True,
             "ticket_id": ticket_id,
-            "user_telegram_id": None,  # filled by caller if needed
+            "user_telegram_id": user.telegram_id if user else None,
+            "user_lang": (user.selected_language if user else None) or "en",
             "text": text,
             "file_url": file_url,
             "file_type": file_type,

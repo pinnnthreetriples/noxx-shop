@@ -5,14 +5,14 @@ copies `ro` (Romanian). `nudge` is the bell notice, `open` the button label.
 """
 
 _STRINGS = {
-    "en": {"nudge": "Reply from support", "open": "Open"},
-    "ru": {"nudge": "Ответ от поддержки", "open": "Открыть"},
-    "de": {"nudge": "Antwort vom Support", "open": "Öffnen"},
-    "el": {"nudge": "Απάντηση από την υποστήριξη", "open": "Άνοιγμα"},
-    "ro": {"nudge": "Răspuns de la suport", "open": "Deschide"},
-    "bg": {"nudge": "Отговор от поддръжката", "open": "Отвори"},
-    "sr": {"nudge": "Одговор подршке", "open": "Отвори"},
-    "tr": {"nudge": "Destekten yanıt", "open": "Aç"},
+    "en": {"nudge": "Reply from support", "open": "View"},
+    "ru": {"nudge": "Ответ от поддержки", "open": "Посмотреть"},
+    "de": {"nudge": "Antwort vom Support", "open": "Ansehen"},
+    "el": {"nudge": "Απάντηση από την υποστήριξη", "open": "Δείτε"},
+    "ro": {"nudge": "Răspuns de la suport", "open": "Vezi"},
+    "bg": {"nudge": "Отговор от поддръжката", "open": "Виж"},
+    "sr": {"nudge": "Одговор подршке", "open": "Погледај"},
+    "tr": {"nudge": "Destekten yanıt", "open": "Görüntüle"},
 }
 _STRINGS["mo"] = _STRINGS["ro"]
 

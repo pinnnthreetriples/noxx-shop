@@ -251,13 +251,25 @@ export function useNoxx() {
 
   // Two-way support: the user's tickets with their full message thread (user +
   // admin). Polled so the owner's replies appear while the screen is open.
+  // Also fetched on the profile screen to power the unread-reply badge.
   const onSupport = loc.pathname === '/support'
+  const onProfile = loc.pathname === '/profile'
   const supportTicketsQ = useQuery({
     queryKey: ['support-tickets'],
     queryFn: async () => (await api.get<SupportTicket[]>('/support/tickets')).data,
-    enabled: onSupport,
+    enabled: onSupport || onProfile,
     refetchInterval: onSupport ? 15_000 : false,
   })
+
+  // Unread badge: is there an admin reply newer than the last one the user saw
+  // on /support? Tracked client-side per device — no backend read-state.
+  const latestAdminReplyAt = Math.max(0, ...(supportTicketsQ.data || []).flatMap(
+    (tk) => tk.messages.filter((m) => m.sender_type === 'admin').map((m) => Date.parse(m.created_at) || 0),
+  ))
+  const supportUnread = latestAdminReplyAt > Number(localStorage.getItem('noxx_support_seen_at') || 0)
+  React.useEffect(() => {
+    if (onSupport && latestAdminReplyAt) localStorage.setItem('noxx_support_seen_at', String(latestAdminReplyAt))
+  }, [onSupport, latestAdminReplyAt])
   const supportReplyMut = useMutation({
     mutationFn: async (p: { ticketId: number; text: string }) =>
       (await api.post(`/support/tickets/${p.ticketId}/messages`, { text: p.text })).data,
@@ -565,6 +577,7 @@ export function useNoxx() {
     goSuccessPurch: () => nav('/purchases'), goPurchases: () => nav('/purchases'), goProfile: () => nav('/profile'), backProfile: () => nav('/profile'),
     goCheckout: () => nav('/checkout'), checkoutBack: () => nav('/cart'), continueShop: () => nav('/catalog'),
     goSupport: () => nav('/support'), goTerms: () => nav('/terms'), goPayments: () => nav('/payment-history'),
+    supportUnread,
     goGate: () => nav('/age-confirm'),
     // Deep-linked opens (the bot's "View" button lands straight on /product/:slug)
     // have no history entry, so nav(-1) is a no-op that traps the user in the card —

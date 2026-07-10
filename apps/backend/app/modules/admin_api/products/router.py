@@ -14,6 +14,7 @@ router = APIRouter(tags=["admin-products"])
 async def list_products(
     q: Optional[str] = None,
     status: Optional[str] = None,
+    category_id: Optional[int] = None,
     _sort: str = "id",
     _order: str = "ASC",
     _start: int = 0,
@@ -22,7 +23,7 @@ async def list_products(
     db: AsyncSession = Depends(get_db),
 ):
     service = ProductAdminService(db)
-    return await service.list(q=q, status=status, sort_field=_sort, order=_order, start=_start, end=_end)
+    return await service.list(q=q, status=status, category_id=category_id, sort_field=_sort, order=_order, start=_start, end=_end)
 
 
 @router.get("/products/{id}")

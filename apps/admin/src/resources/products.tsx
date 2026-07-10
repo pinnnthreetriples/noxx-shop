@@ -7,7 +7,12 @@ import {
   useInput, useNotify,
 } from 'react-admin'
 import { useFormContext } from 'react-hook-form'
-import { Box, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, Divider, IconButton, Typography } from '@mui/material'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined'
+import AddPhotoAlternateOutlinedIcon from '@mui/icons-material/AddPhotoAlternateOutlined'
+import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
+import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined'
 import { TranslatableInput } from '../components/TranslatableInput'
 
 // Layout helpers: fields side by side instead of one per line
@@ -15,7 +20,10 @@ const Row = ({ children }: { children: ReactNode }) => (
   <Box sx={{ display: 'flex', gap: 2, width: '100%', '& > *': { flex: 1 } }}>{children}</Box>
 )
 const Section = ({ title }: { title: string }) => (
-  <Typography variant="overline" sx={{ color: 'text.secondary', mt: 1, mb: -1, width: '100%' }}>{title}</Typography>
+  <Box sx={{ width: '100%', mt: 2 }}>
+    <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '.08em' }}>{title}</Typography>
+    <Divider />
+  </Box>
 )
 
 const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -26,11 +34,6 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : 'неизве�
 // Served URL for a stored relative path (or an absolute URL as-is).
 const mediaSrc = (value: string) =>
   value ? (/^https?:\/\//.test(value) ? value : `${mediaUrl}/${value.replace(/^\//, '')}`) : ''
-
-const btnStyle = (busy: boolean) => ({
-  display: 'inline-block', padding: '8px 16px', borderRadius: 4, background: '#1976d2',
-  color: '#fff', fontSize: 14, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
-} as const)
 
 // Upload a file/blob to POST /admin/upload; returns the served URL (an absolute
 // CDN URL when R2 is configured, else a media-server path). Stored as-is.
@@ -101,12 +104,56 @@ const captureFirstFrame = (blobUrl: string): Promise<Blob> =>
     v.addEventListener('seeked', () => { captureFrame(v).then(resolve, reject) })
   })
 
-// Upload an image to POST /admin/upload and put the returned relative path into
-// the form field. Shows a live preview. Used for the manual cover image.
-const MediaUploadInput = ({ source, label, accept }: {
-  source: string; label: string; accept: string
-}) => {
-  const { field } = useInput({ source })
+// Card chrome shared by the two media inputs: label + trash icon in the
+// header, a dashed click-to-upload area when empty, preview + actions when
+// filled. Deleting clears the form field (saved as null), no URL editing.
+const MediaCard = ({ label, filled, busy, accept, onFile, onClear, emptyIcon, emptyText, preview, actions }: {
+  label: string; filled: boolean; busy: boolean; accept: string
+  onFile: (e: ChangeEvent<HTMLInputElement>) => void; onClear: () => void
+  emptyIcon: ReactNode; emptyText: string; preview: ReactNode; actions?: ReactNode
+}) => (
+  <Box sx={{ flex: 1, minWidth: 280, border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 32, mb: 0.5 }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>
+        {label}
+      </Typography>
+      {filled && (
+        <IconButton size="small" onClick={onClear} disabled={busy} title="Удалить"
+          sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}>
+          <DeleteOutlineIcon fontSize="small" />
+        </IconButton>
+      )}
+    </Box>
+    {filled ? (
+      <>
+        {preview}
+        <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Button component="label" size="small" disabled={busy}
+            startIcon={busy ? <CircularProgress size={14} /> : <FileUploadOutlinedIcon />}>
+            Заменить
+            <input type="file" hidden accept={accept} onChange={onFile} disabled={busy} />
+          </Button>
+          {actions}
+        </Box>
+      </>
+    ) : (
+      <Box component="label" sx={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5,
+        py: 4, borderRadius: 1.5, border: '1px dashed', borderColor: 'divider', color: 'text.secondary',
+        cursor: busy ? 'wait' : 'pointer', transition: 'border-color .15s, color .15s',
+        '&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'action.hover' },
+      }}>
+        {busy ? <CircularProgress size={22} /> : emptyIcon}
+        <Typography variant="body2">{busy ? 'Загрузка…' : emptyText}</Typography>
+        <input type="file" hidden accept={accept} onChange={onFile} disabled={busy} />
+      </Box>
+    )}
+  </Box>
+)
+
+// Cover image: uploads to /admin/upload (downscaled to JPEG), shows a preview.
+const CoverInput = () => {
+  const { field } = useInput({ source: 'cover_url' })
   const notify = useNotify()
   const [busy, setBusy] = useState(false)
   const src = mediaSrc((field.value as string) || '')
@@ -115,9 +162,8 @@ const MediaUploadInput = ({ source, label, accept }: {
     if (!f) return
     setBusy(true)
     try {
-      const isImage = accept.startsWith('image')
-      field.onChange(isImage ? await uploadToMedia(await shrinkImage(f), 'cover.jpg') : await uploadToMedia(f))
-      notify('Файл загружен', { type: 'success' })
+      field.onChange(await uploadToMedia(await shrinkImage(f), 'cover.jpg'))
+      notify('Обложка загружена', { type: 'success' })
     } catch (err) {
       notify(`Ошибка загрузки: ${errText(err)}`, { type: 'error' })
     } finally {
@@ -126,27 +172,27 @@ const MediaUploadInput = ({ source, label, accept }: {
     }
   }
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>{label}</div>
-      {src && <img src={src} alt="" style={{ maxWidth: 280, maxHeight: 160, borderRadius: 8, display: 'block', marginBottom: 8 }} />}
-      <label style={btnStyle(busy)}>
-        {busy ? 'Загрузка…' : 'Загрузить файл'}
-        <input type="file" accept={accept} onChange={onFile} disabled={busy} style={{ display: 'none' }} />
-      </label>
-    </div>
+    <MediaCard
+      label="Обложка" filled={!!src} busy={busy} accept="image/*"
+      onFile={onFile} onClear={() => field.onChange(null)}
+      emptyIcon={<AddPhotoAlternateOutlinedIcon />} emptyText="Загрузить изображение"
+      preview={<img src={src} alt="" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 8, display: 'block' }} />}
+    />
   )
 }
 
-// Preview-video upload with cover-from-frame. The scrubbable <video> and frame
-// capture are driven by a local blob: URL (same-origin, never taints canvas) so
-// canvas.toBlob() works; the served cross-origin URL is only shown when editing
-// without reselecting, in which case capture is unavailable (no local File).
+// Preview-video upload with cover-from-frame. A freshly selected file plays
+// from a local blob: URL (same-origin, never taints canvas). A saved video is
+// loaded with crossOrigin=anonymous so capture works too — that needs CORS on
+// the CDN (scripts/set_r2_cors.py); if the CDN refuses, we reload the video
+// without CORS so playback still works and only the capture button is hidden.
 const PreviewVideoInput = () => {
   const { field } = useInput({ source: 'preview_video_url' })
   const { setValue, getValues } = useFormContext()
   const notify = useNotify()
   const [busy, setBusy] = useState(false)
   const [objUrl, setObjUrl] = useState('')
+  const [corsBlocked, setCorsBlocked] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -162,10 +208,10 @@ const PreviewVideoInput = () => {
     const f = e.target.files?.[0]
     if (!f) return
     const url = URL.createObjectURL(f)
-    setObjUrl(url)
     setBusy(true)
     try {
       field.onChange(await uploadToMedia(f))
+      setObjUrl(url) // adopt the local preview only after the upload succeeded
       notify('Видео загружено', { type: 'success' })
       if (!getValues('cover_url')) {
         try {
@@ -176,6 +222,7 @@ const PreviewVideoInput = () => {
         }
       }
     } catch (err) {
+      URL.revokeObjectURL(url)
       notify(`Ошибка загрузки: ${errText(err)}`, { type: 'error' })
     } finally {
       setBusy(false)
@@ -198,20 +245,33 @@ const PreviewVideoInput = () => {
   }
 
   const src = objUrl || mediaSrc((field.value as string) || '')
+  const remote = !objUrl && !!src
+  const canCapture = !!objUrl || (remote && !corsBlocked)
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>Превью (короткое видео)</div>
-      {src && <video key={src} ref={videoRef} src={src} controls muted style={{ maxWidth: 280, borderRadius: 8, display: 'block', marginBottom: 8 }} />}
-      <label style={btnStyle(busy)}>
-        {busy ? 'Загрузка…' : 'Загрузить файл'}
-        <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={onFile} disabled={busy} style={{ display: 'none' }} />
-      </label>
-      {objUrl && (
-        <button type="button" onClick={makeCover} disabled={busy} style={{ ...btnStyle(busy), border: 'none', marginLeft: 8 }}>
-          📸 Сделать обложку из этого кадра
-        </button>
+    <MediaCard
+      label="Превью (короткое видео)" filled={!!src} busy={busy}
+      accept="video/mp4,video/webm,video/quicktime"
+      onFile={onFile} onClear={() => { field.onChange(null); setObjUrl('') }}
+      emptyIcon={<VideocamOutlinedIcon />} emptyText="Загрузить видео"
+      preview={
+        <>
+          <video key={`${src}:${corsBlocked}`} ref={videoRef} src={src} controls muted
+            crossOrigin={remote && !corsBlocked ? 'anonymous' : undefined}
+            onError={() => { if (remote && !corsBlocked) setCorsBlocked(true) }}
+            style={{ width: '100%', maxHeight: 220, borderRadius: 8, display: 'block' }} />
+          {canCapture && (
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+              Перемотай на нужный кадр — и он станет обложкой
+            </Typography>
+          )}
+        </>
+      }
+      actions={canCapture && (
+        <Button size="small" onClick={makeCover} disabled={busy} startIcon={<PhotoCameraOutlinedIcon />}>
+          Обложка из кадра
+        </Button>
       )}
-    </div>
+    />
   )
 }
 
@@ -239,14 +299,8 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
     </Row>
     <Section title="Медиа" />
     <Row>
-      <Box>
-        <MediaUploadInput source="cover_url" label="Обложка (изображение)" accept="image/*" />
-        <TextInput source="cover_url" label="Обложка — URL/путь" fullWidth />
-      </Box>
-      <Box>
-        <PreviewVideoInput />
-        <TextInput source="preview_video_url" label="Превью видео — URL/путь" fullWidth />
-      </Box>
+      <CoverInput />
+      <PreviewVideoInput />
     </Row>
     <Section title="Контент и показатели" />
     <Row>
@@ -263,13 +317,19 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
       <TextInput source="google_drive_file_id" />
     </Row>
     <Row>
-      {!create && <NumberInput source="display_views" />}
-      {!create && <NumberInput source="display_purchases" />}
-      <NumberInput source="trend_score" />
+      <NumberInput source="display_views" defaultValue={create ? 0 : undefined} helperText="Витрина показывает только это число" />
+      <NumberInput source="display_purchases" defaultValue={create ? 0 : undefined} helperText="Витрина показывает только это число" />
+      <NumberInput source="trend_score" helperText=" " />
       <ReferenceArrayInput source="tag_ids" reference="tags">
-        <AutocompleteArrayInput optionText="slug" />
+        <AutocompleteArrayInput optionText="slug" helperText=" " />
       </ReferenceArrayInput>
     </Row>
+    {!create && (
+      <Row>
+        <NumberInput source="real_views" disabled helperText="Считается автоматически — открытия карточки" />
+        <NumberInput source="real_purchases" disabled helperText="Считается автоматически — оплаченные заказы" />
+      </Row>
+    )}
     <Row>
       <BooleanInput source="is_premium" label="Премиум — подписчики получают бесплатно" />
     </Row>
@@ -286,6 +346,9 @@ const categoryOptionText = (c: { slug?: string; title_ru?: string }) =>
 
 const productFilters = [
   <TextInput key="q" source="q" label="Поиск" alwaysOn />,
+  <ReferenceInput key="category" source="category_id" reference="categories">
+    <AutocompleteInput optionText={categoryOptionText} label="Категория" />
+  </ReferenceInput>,
   <SelectInput key="status" source="status" label="Статус" choices={statusChoices} />,
 ]
 
@@ -293,6 +356,11 @@ export const ProductList = () => (
   <List filters={productFilters}>
     <Datagrid rowClick="edit">
       <TextField source="id" />
+      <FunctionField label="Обложка" sortable={false} render={(r: { cover_url?: string }) => (
+        r?.cover_url
+          ? <img src={mediaSrc(r.cover_url)} alt="" style={{ width: 56, height: 34, objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+          : null
+      )} />
       <TextField source="slug" />
       <ReferenceField source="category_id" reference="categories" label="Категория" sortable={false}>
         <FunctionField render={categoryOptionText} />

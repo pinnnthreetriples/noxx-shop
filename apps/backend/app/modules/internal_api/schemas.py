@@ -45,6 +45,7 @@ class AdminReplyResponse(BaseModel):
     ok: bool
     ticket_id: Optional[int] = None
     user_telegram_id: Optional[int] = None
+    user_lang: Optional[str] = None
     text: Optional[str] = None
     file_url: Optional[str] = None
     file_type: Optional[str] = None
