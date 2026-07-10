@@ -69,10 +69,10 @@ Do **not** set `X-Content-Type-Options` here from Cloudflare if you later decide
 static bundle through the backend — for now the admin container is a plain static SPA host with no
 origin-set security headers, so it's safe to set `Referrer-Policy` at Cloudflare for this host.
 
-**CSP (Report-Only), concrete policy for the react-admin + Material UI SPA:**
+**CSP policy for the react-admin + Material UI SPA** (now **enforcing** — see status note below):
 
 ```
-Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.noxxshop.com; font-src 'self' data:; connect-src 'self' https://api.noxxshop.com https://*.ingest.de.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.noxxshop.com; media-src 'self' https://media.noxxshop.com; font-src 'self' data:; connect-src 'self' https://api.noxxshop.com https://*.ingest.de.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
 Notes on the directives:
@@ -84,15 +84,24 @@ Notes on the directives:
   only wired up if `VITE_SENTRY_DSN` is set for the build).
 - `img-src` includes `https://media.noxxshop.com` because product cover images are served as full
   R2 CDN URLs (`apps/backend/app/core/r2.py`), not proxied through the admin origin.
+- `media-src 'self' https://media.noxxshop.com` is **required** too: the product editor previews the
+  existing `preview_video_url` (`<video src="https://media.noxxshop.com/...mp4">`). Without it,
+  `media-src` falls back to `default-src 'self'` and the video preview is silently blocked (image
+  still shows, since that's covered by `img-src`). This was missed in the first enforcing flip and
+  added after the admin video preview broke — keep it.
 - `frame-ancestors 'none'` is intentionally stricter than `X-Frame-Options: DENY` needs to be —
   keep both; older browsers only understand `X-Frame-Options`.
 
-**Flipping to enforcing:** after ~14 days with no unexpected violations in the browser console (or
-a report collector if you wire one up later — none is configured here), duplicate the rule but
-rename the header from `Content-Security-Policy-Report-Only` to `Content-Security-Policy`, then
-delete the Report-Only rule. Don't skip the observation window — Vite's build output or a MUI
-version bump can introduce a new inline script/style pattern that would silently break the app
-under an enforcing policy.
+**Status:** the admin rule is now **enforcing** (`Content-Security-Policy`, not Report-Only) as of
+2026-07-10, verified in-browser against the dashboard, product list, and product editor (image +
+video preview + live API calls all load clean). The miniapp rule (`app.noxxshop.com`, below) is
+still `Content-Security-Policy-Report-Only` — it can only be safely flipped after testing inside the
+real Telegram client, since it can't be exercised in a plain browser.
+
+**How the flip was done (for reference / re-doing on another host):** edit the existing Transform
+Rule and rename its header from `Content-Security-Policy-Report-Only` to `Content-Security-Policy`
+(value unchanged). Watch for a new inline script/style pattern from a Vite build or MUI bump that a
+short observation window wouldn't have surfaced — re-verify in-browser after any admin redeploy.
 
 ## Rule 2: `app.noxxshop.com` (miniapp — must stay embeddable)
 
