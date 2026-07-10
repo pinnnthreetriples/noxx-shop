@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && rm -r
 COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
+RUN chmod +x docker-entrypoint.sh
 
 ENV PYTHONPATH=/app
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -23,4 +24,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -55,9 +55,10 @@ async def _add_missing_columns(conn):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        await _add_missing_columns(conn)
+    if settings.db_auto_schema:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            await _add_missing_columns(conn)
     yield
     await engine.dispose()
 
