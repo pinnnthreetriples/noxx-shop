@@ -1,0 +1,2 @@
+# Shell scripts MUST stay LF — CRLF breaks the shebang inside Linux containers
+*.sh text eol=lf
