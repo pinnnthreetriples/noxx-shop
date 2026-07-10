@@ -307,3 +307,17 @@ Realistic order to knock this out in one sitting: **2 → 3 → 6 → 8 → 7 �
 configuration with no downtime. Section 8 (secret rotation) needs a restart of the affected
 containers, so do it during a moment you don't mind a few seconds of API downtime. Section 7
 (backups) is the one most worth not skipping even if time runs out.
+
+---
+
+## Uptime monitoring (UptimeRobot, free)
+
+`GET /health` on the backend now pings Postgres, so one probe covers the tunnel, nginx,
+the API container, and the database at once.
+
+1. Sign up at https://uptimerobot.com (free plan: 50 monitors, 5-min interval).
+2. Add an HTTP(s) monitor: `https://app.noxxshop.com/api/health` — alert on any non-200.
+3. Optionally add a keyword monitor on `https://app.noxxshop.com/` for the miniapp itself.
+4. Alert contact: UptimeRobot's Telegram integration (Integrations → Telegram) pings you directly.
+
+If the PC reboots or `cloudflared` dies, the probe fails within 5 minutes and you get a DM.

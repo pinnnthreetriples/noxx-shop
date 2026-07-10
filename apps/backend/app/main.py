@@ -139,4 +139,9 @@ app.include_router(internal_api_router)
 
 @app.get("/health")
 async def health():
+    """Uptime-monitor probe (public via the miniapp's /api proxy). Pings the DB
+    so a dead Postgres turns into a 500 the monitor can alert on."""
+    from sqlalchemy import text
+    async with engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))
     return {"status": "ok"}
