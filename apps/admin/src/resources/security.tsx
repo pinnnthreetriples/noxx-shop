@@ -66,48 +66,42 @@ const SecurityPage = () => {
     }
   }
 
-  const confirmEnable = async () => {
+  // POST {code} to a 2fa endpoint; returns the OK response or null (formError set).
+  const postCode = async (path: string): Promise<Response | null> => {
     setLoading(true)
     setFormError('')
     try {
-      const res = await fetch(`${apiUrl}/2fa/enable`, {
+      const res = await fetch(`${apiUrl}/2fa/${path}`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ code }),
       })
       if (!res.ok) {
         setFormError(await errorMessage(res))
-        return
+        return null
       }
-      const data: EnableResponse = await res.json()
-      setBackupCodes(data.backup_codes)
-      setSetup(null)
-      setCode('')
-      await loadStatus()
+      return res
     } finally {
       setLoading(false)
     }
   }
 
+  const confirmEnable = async () => {
+    const res = await postCode('enable')
+    if (!res) return
+    const data: EnableResponse = await res.json()
+    setBackupCodes(data.backup_codes)
+    setSetup(null)
+    setCode('')
+    await loadStatus()
+  }
+
   const disable2fa = async () => {
-    setLoading(true)
-    setFormError('')
-    try {
-      const res = await fetch(`${apiUrl}/2fa/disable`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ code }),
-      })
-      if (!res.ok) {
-        setFormError(await errorMessage(res))
-        return
-      }
-      setCode('')
-      await loadStatus()
-      notify('Двухфакторная аутентификация отключена', { type: 'info' })
-    } finally {
-      setLoading(false)
-    }
+    const res = await postCode('disable')
+    if (!res) return
+    setCode('')
+    await loadStatus()
+    notify('Двухфакторная аутентификация отключена', { type: 'info' })
   }
 
   const copyBackupCodes = () => {
