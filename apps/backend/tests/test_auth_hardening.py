@@ -36,7 +36,7 @@ async def test_login_rejects_wrong_and_accepts_hashed_password(monkeypatch):
     monkeypatch.setattr(settings, "admin_default_password", "")
 
     svc = AdminAuthService(db=None)
-    admin = type("A", (), {"id": 7})()
+    admin = type("A", (), {"id": 7, "totp_enabled": False, "token_version": 0})()
     monkeypatch.setattr(svc.repo, "get_by_telegram_id", lambda *_: _aret(admin))
 
     assert await svc.login("owner@example.com", "wrong") is None  # noqa: S106

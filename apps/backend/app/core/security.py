@@ -46,9 +46,14 @@ def get_user_from_init_data(init_data: str) -> dict:
     return json.loads(user_json)
 
 
-def create_admin_token(admin_id: int, hours: int = 12) -> str:
+def create_admin_token(admin_id: int, hours: int = 12, version: int = 0) -> str:
+    # "ver" must match Admin.token_version; bumping the column revokes old tokens.
     return pyjwt.encode(
-        {"sub": str(admin_id), "exp": datetime.now(timezone.utc) + timedelta(hours=hours)},
+        {
+            "sub": str(admin_id),
+            "ver": version,
+            "exp": datetime.now(timezone.utc) + timedelta(hours=hours),
+        },
         settings.admin_jwt_secret or settings.jwt_secret,
         algorithm="HS256",
     )

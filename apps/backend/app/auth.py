@@ -4,6 +4,7 @@ from fastapi import Request, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_user_from_init_data, decode_admin_token
 from app.models import User, Admin
@@ -84,4 +85,13 @@ async def get_current_admin(
     admin = result.scalars().first()
     if not admin:
         raise HTTPException(status_code=403, detail="Admin access required")
+    # Pre-"ver" tokens count as version 0 and stay valid until the version is bumped.
+    if payload.get("ver", 0) != (admin.token_version or 0):
+        raise HTTPException(status_code=401, detail="Token revoked")
+    if (
+        settings.admin_2fa_required
+        and not admin.totp_enabled
+        and not request.url.path.startswith("/auth/2fa")
+    ):
+        raise HTTPException(status_code=403, detail={"code": "totp_setup_required"})
     return admin
