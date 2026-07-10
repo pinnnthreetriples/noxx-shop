@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://video_shop:change_me@localhost:5432/video_shop"
     redis_url: str = "redis://localhost:6379/0"
 
+    # Legacy runtime schema sync (create_all + ad-hoc ADD COLUMN) on startup.
+    # Alembic migrations are now the source of truth for schema; set to false
+    # once `alembic upgrade head` has been run so the app DB user needs no DDL rights.
+    db_auto_schema: bool = True
+
     bot_token: str = ""
     bot_username: str = ""
 
