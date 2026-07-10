@@ -21,6 +21,14 @@ class Admin(Base):
     name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     role: Mapped[AdminRole] = mapped_column(Enum(AdminRole), default=AdminRole.owner)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # 2FA (TOTP): /auth/2fa/setup stores a pending secret, /auth/2fa/enable
+    # promotes it. backup_codes is a JSON list of sha256 hashes (one-time use).
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    totp_secret: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    totp_pending_secret: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    backup_codes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Bumped to revoke all outstanding admin JWTs (token claim "ver" must match).
+    token_version: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

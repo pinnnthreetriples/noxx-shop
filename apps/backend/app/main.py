@@ -51,6 +51,20 @@ async def _add_missing_columns(conn):
     await conn.exec_driver_sql(
         "ALTER TABLE settings ADD COLUMN IF NOT EXISTS delivery_channel_id VARCHAR(64)"
     )
+    # Admin 2FA + JWT revocation. Deliberately duplicated in alembic migration
+    # 9f3d2c81a5e7: prod still runs with DB_AUTO_SCHEMA=1 (create_all adds new
+    # tables but never new columns), so without this the deploy would 500.
+    await conn.exec_driver_sql(
+        "ALTER TABLE admins ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false"
+    )
+    await conn.exec_driver_sql("ALTER TABLE admins ADD COLUMN IF NOT EXISTS totp_secret TEXT")
+    await conn.exec_driver_sql(
+        "ALTER TABLE admins ADD COLUMN IF NOT EXISTS totp_pending_secret TEXT"
+    )
+    await conn.exec_driver_sql("ALTER TABLE admins ADD COLUMN IF NOT EXISTS backup_codes TEXT")
+    await conn.exec_driver_sql(
+        "ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0"
+    )
 
 
 @asynccontextmanager

@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"  # noqa: S105 - placeholder, overridden by .env
     admin_jwt_secret: str = "admin-change-me"  # noqa: S105 - placeholder, overridden by .env
     admin_jwt_ttl_hours: int = 12
+    # When true, admins without 2FA get 403 totp_setup_required on every admin
+    # endpoint except login and /auth/2fa/*.
+    admin_2fa_required: bool = False
     initdata_max_age_seconds: int = 3600
     admin_default_email: str = ""
     admin_default_password: str = ""
