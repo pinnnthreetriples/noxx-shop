@@ -35,5 +35,6 @@ async def pop_delivery():
     return {"empty": False,
             "user_telegram_id": payload.get("user_telegram_id"),
             "message_text": payload.get("message_text"),
+            "button": payload.get("button"),
             "channel_id": payload.get("channel_id"),
             "videos": payload.get("videos") or []}

@@ -53,8 +53,35 @@ async def test_reply_stores_message_marks_answered_and_enqueues(db_session, monk
     assert payload["user_telegram_id"] == user.telegram_id
     assert reply_body not in payload["message_text"]
     assert payload["message_text"] == "🔔 Reply from support"
-    assert payload["button"]["text"] == "Open"
+    assert payload["button"]["text"] == "View"
     assert payload["button"]["url"].endswith("/support")
+
+
+@pytest.mark.asyncio
+async def test_admin_reply_by_telegram_resolves_user_and_lang(db_session):
+    """The bot needs the recipient's telegram_id and language to deliver the
+    reply with a localized «Посмотреть» button (was hardcoded to None)."""
+    from app.modules.admin.models import Admin
+    from app.modules.orders.repository import BotMessageMapRepository
+    from app.modules.support.service import SupportService
+
+    user = User(telegram_id=700100300, first_name="Buyer", selected_language="ru")
+    admin = Admin(telegram_id=900100300, name="Owner")
+    db_session.add_all([user, admin])
+    await db_session.flush()
+    ticket = SupportTicket(user_id=user.id, topic=SupportTopic.other, status=TicketStatus.open)
+    db_session.add(ticket)
+    await db_session.flush()
+    await BotMessageMapRepository(db_session).create(admin_message_id=42, chat_id=1, ticket_id=ticket.id)
+    await db_session.commit()
+
+    result = await SupportService(db_session).admin_reply_by_telegram(
+        admin_telegram_id=admin.telegram_id, reply_to_message_id=42,
+        text="Готово", file_url=None, file_type=None,
+    )
+    assert result["ok"] is True
+    assert result["user_telegram_id"] == user.telegram_id
+    assert result["user_lang"] == "ru"
 
 
 @pytest.mark.asyncio
