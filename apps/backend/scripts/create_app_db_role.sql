@@ -6,13 +6,11 @@
 -- `alembic upgrade head` (see docs/db-least-privilege.md). This role only
 -- gets DML rights, so a compromised app process can't alter the schema.
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'noxx_app') THEN
-        CREATE ROLE noxx_app WITH LOGIN PASSWORD :'app_password';
-    END IF;
-END
-$$;
+-- psql variables (:'app_password') don't interpolate inside a dollar-quoted
+-- DO $$ ... $$ block, so the role is created (if missing) via \gexec instead,
+-- and the password is set separately where interpolation does work.
+SELECT 'CREATE ROLE noxx_app LOGIN' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'noxx_app')\gexec
+ALTER ROLE noxx_app WITH PASSWORD :'app_password';
 
 GRANT USAGE ON SCHEMA public TO noxx_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO noxx_app;

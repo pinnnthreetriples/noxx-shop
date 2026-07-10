@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     admin_default_password: str = ""
     admin_default_password_hash: str = ""
     admin_default_telegram_id: str = ""
+    # Fernet key encrypting admin.totp_secret/totp_pending_secret at rest.
+    # Empty = no-op (plaintext, current behavior). Set to enable encryption;
+    # legacy plaintext secrets keep verifying (see app/core/totp_crypto.py).
+    admin_totp_enc_key: str = ""
 
     google_client_id: str = ""
     google_client_secret: str = ""

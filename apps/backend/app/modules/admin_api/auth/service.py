@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import verify_password, create_admin_token
+from app.core.totp_crypto import decrypt_secret
 from app.modules.admin_api.auth.repository import AdminRepository
 from app.modules.admin.models import Admin
 
@@ -18,7 +19,7 @@ def check_otp(admin: Admin, code: str) -> bool:
     """Accept a current TOTP code or a one-time backup code. A matched backup
     code is removed from admin.backup_codes — the caller must commit."""
     code = (code or "").strip()
-    if admin.totp_secret and pyotp.TOTP(admin.totp_secret).verify(code, valid_window=1):
+    if admin.totp_secret and pyotp.TOTP(decrypt_secret(admin.totp_secret)).verify(code, valid_window=1):
         return True
     digest = hashlib.sha256(code.encode()).hexdigest()
     hashes = json.loads(admin.backup_codes or "[]")

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.ratelimit import client_ip, too_many_attempts
+from app.core.totp_crypto import encrypt_secret, decrypt_secret
 from app.auth import get_current_admin
 from app.modules.admin.models import Admin
 from app.modules.admin_api.auth.service import AdminAuthService, check_otp
@@ -56,9 +57,10 @@ async def twofa_setup(
     admin: Admin = Depends(get_current_admin), db: AsyncSession = Depends(get_db)
 ):
     secret = pyotp.random_base32()
-    admin.totp_pending_secret = secret
+    admin.totp_pending_secret = encrypt_secret(secret)
     await db.commit()
     label = settings.admin_default_email or admin.name or str(admin.telegram_id)
+    # otpauth_uri is built from the raw secret: that's what the user scans.
     uri = pyotp.TOTP(secret).provisioning_uri(name=label, issuer_name="NoxX Admin")
     return {"secret": secret, "otpauth_uri": uri}
 
@@ -71,9 +73,10 @@ async def twofa_enable(
 ):
     if not admin.totp_pending_secret:
         raise HTTPException(status_code=400, detail="Run /auth/2fa/setup first")
-    if not pyotp.TOTP(admin.totp_pending_secret).verify(body.code.strip(), valid_window=1):
+    pending = decrypt_secret(admin.totp_pending_secret)
+    if not pyotp.TOTP(pending).verify(body.code.strip(), valid_window=1):
         raise HTTPException(status_code=401, detail={"code": "totp_invalid"})
-    backup_codes = [secrets.token_hex(4) for _ in range(10)]
+    backup_codes = [secrets.token_hex(8) for _ in range(10)]
     admin.totp_secret = admin.totp_pending_secret
     admin.totp_pending_secret = None
     admin.totp_enabled = True

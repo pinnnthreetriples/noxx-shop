@@ -7,11 +7,14 @@ import time
 from contextlib import asynccontextmanager
 
 import pyotp
+from cryptography.fernet import Fernet
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 import app.modules.admin_api.auth.router as auth_router
 from app.core.config import settings
 from app.main import app
+from app.modules.admin.models import Admin
 
 EMAIL = "owner@test.local"
 PASSWORD = "test-password"  # noqa: S105 - test-only credential
@@ -83,7 +86,7 @@ async def test_full_2fa_flow(monkeypatch):
         assert en.status_code == 200
         backup_codes = en.json()["backup_codes"]
         assert len(backup_codes) == 10
-        assert all(len(bc) == 8 for bc in backup_codes)
+        assert all(len(bc) == 16 for bc in backup_codes)
 
         # the session that enabled 2FA keeps working (token_version not bumped)
         assert (await c.get("/auth/me", headers=h)).status_code == 200
@@ -145,3 +148,49 @@ async def test_2fa_required_blocks_admin_endpoints_until_setup(monkeypatch):
         assert status.status_code == 200
         assert status.json() == {"enabled": False, "required": True}
         assert (await c.post("/auth/2fa/setup", headers=h)).status_code == 200
+
+
+async def test_new_secret_stored_encrypted_when_key_set_but_still_verifies(monkeypatch, db_session):
+    """With ADMIN_TOTP_ENC_KEY set, a freshly enrolled secret lands in the DB
+    as `fernet:<token>` (not the raw secret), yet TOTP/login still work."""
+    _cfg(monkeypatch, 900005)
+    monkeypatch.setattr(settings, "admin_totp_enc_key", Fernet.generate_key().decode())
+    async with _client() as c:
+        h = {"x-admin-token": (await _login(c)).json()["token"]}
+        secret = (await c.post("/auth/2fa/setup", headers=h)).json()["secret"]
+        totp = pyotp.TOTP(secret)
+        en = await c.post("/auth/2fa/enable", json={"code": totp.now()}, headers=h)
+        assert en.status_code == 200
+
+        db_session.expire_all()
+        row = (
+            await db_session.execute(select(Admin).where(Admin.telegram_id == 900005))
+        ).scalars().first()
+        assert row.totp_secret.startswith("fernet:")
+        assert row.totp_secret != secret
+
+        assert (await _login(c, otp=totp.now())).status_code == 200
+
+
+async def test_legacy_plaintext_secret_still_verifies_once_key_is_set(monkeypatch, db_session):
+    """No-lockout path: an admin enrolled before ADMIN_TOTP_ENC_KEY existed has
+    a plaintext totp_secret in the DB. Introducing the key later must not lock
+    them out -- decrypt_secret() passes plaintext through untouched."""
+    _cfg(monkeypatch, 900006)
+    async with _client() as c:
+        h = {"x-admin-token": (await _login(c)).json()["token"]}
+    assert h  # login created the admin row
+
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    row = (
+        await db_session.execute(select(Admin).where(Admin.telegram_id == 900006))
+    ).scalars().first()
+    row.totp_secret = secret  # simulates the already-enrolled prod admin
+    row.totp_enabled = True
+    await db_session.commit()
+
+    # The encryption key is introduced only now (e.g. added to prod .env).
+    monkeypatch.setattr(settings, "admin_totp_enc_key", Fernet.generate_key().decode())
+    async with _client() as c:
+        assert (await _login(c, otp=totp.now())).status_code == 200
