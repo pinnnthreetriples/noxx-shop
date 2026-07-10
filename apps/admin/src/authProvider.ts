@@ -2,21 +2,33 @@ import { AuthProvider } from 'react-admin'
 
 interface ApiError {
   status?: number
+  body?: { detail?: unknown }
+}
+
+/** Thrown by login() when the backend demands a TOTP/backup code. */
+export interface TotpError extends Error {
+  code: 'totp_required' | 'totp_invalid'
 }
 
 const authProvider: AuthProvider = {
-  login: async ({ username, password }) => {
+  login: async ({ username, password, otp }: { username: string; password: string; otp?: string }) => {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
     const res = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: username, password }),
+      body: JSON.stringify({ email: username, password, ...(otp ? { otp } : {}) }),
     })
     if (!res.ok) {
       // Surface real error to user; no dev fallback that masks bugs.
-      const detail = await res.text().catch(() => '')
+      const body = await res.json().catch(() => null) as { detail?: unknown } | null
+      const detail = body?.detail
+      const code = detail && typeof detail === 'object' ? (detail as { code?: unknown }).code : undefined
+      if (code === 'totp_required' || code === 'totp_invalid') {
+        throw Object.assign(new Error(code), { code }) as TotpError
+      }
+      const detailText = typeof detail === 'string' ? detail : ''
       throw new Error(
-        `Login failed (HTTP ${res.status})${detail ? `: ${detail}` : ''}`,
+        `Login failed (HTTP ${res.status})${detailText ? `: ${detailText}` : ''}`,
       )
     }
     const data = await res.json()
@@ -33,7 +45,14 @@ const authProvider: AuthProvider = {
     return localStorage.getItem('admin_token') ? Promise.resolve() : Promise.reject()
   },
   checkError: (error: unknown) => {
-    const status = (error as ApiError).status
+    const { status, body } = error as ApiError
+    const detail = body?.detail
+    const code = detail && typeof detail === 'object' ? (detail as { code?: unknown }).code : undefined
+    if (code === 'totp_setup_required') {
+      // Admin hasn't enabled 2FA but the server now requires it — send them to
+      // the setup page without logging them out.
+      return Promise.reject({ redirectTo: '/security', logoutUser: false })
+    }
     if (status === 401 || status === 403) {
       localStorage.removeItem('admin_token')
       return Promise.reject()

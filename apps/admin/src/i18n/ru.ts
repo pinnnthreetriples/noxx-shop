@@ -183,6 +183,9 @@ const customMessages = {
         subscription_coming_soon_text: 'Текст «Подписка скоро»',
       },
     },
+    security: {
+      name: '2FA',
+    },
   },
 }
 
