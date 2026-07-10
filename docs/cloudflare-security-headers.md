@@ -92,16 +92,21 @@ Notes on the directives:
 - `frame-ancestors 'none'` is intentionally stricter than `X-Frame-Options: DENY` needs to be —
   keep both; older browsers only understand `X-Frame-Options`.
 
-**Status:** the admin rule is now **enforcing** (`Content-Security-Policy`, not Report-Only) as of
-2026-07-10, verified in-browser against the dashboard, product list, and product editor (image +
-video preview + live API calls all load clean). The miniapp rule (`app.noxxshop.com`, below) is
-still `Content-Security-Policy-Report-Only` — it can only be safely flipped after testing inside the
-real Telegram client, since it can't be exercised in a plain browser.
+**Status:** both the admin and miniapp rules are now **enforcing** (`Content-Security-Policy`, not
+Report-Only) as of 2026-07-10. Admin verified in-browser against the dashboard, product list, and
+product editor (image + video preview + live API calls all clean). Miniapp verified by loading
+`app.noxxshop.com` (a same-origin tab lets you read its CSP violations) with a
+`securitypolicyviolation` listener while exercising every external load — `media.noxxshop.com`
+image + video, the `telegram.org` script, and the same-origin `/api` fetch — with **zero
+violations**, plus a full render inside the real Telegram client (language + 18+ screens, fonts,
+animations; embedding intact under `frame-ancestors *`).
 
 **How the flip was done (for reference / re-doing on another host):** edit the existing Transform
 Rule and rename its header from `Content-Security-Policy-Report-Only` to `Content-Security-Policy`
 (value unchanged). Watch for a new inline script/style pattern from a Vite build or MUI bump that a
-short observation window wouldn't have surfaced — re-verify in-browser after any admin redeploy.
+short observation window wouldn't have surfaced — re-verify in-browser after any admin/miniapp
+redeploy. The browser HTTP-caches the document's CSP, so add a cache-busting query (`?cb=1`) when
+re-checking a header change.
 
 ## Rule 2: `app.noxxshop.com` (miniapp — must stay embeddable)
 
