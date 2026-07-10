@@ -46,10 +46,6 @@ class Settings(BaseSettings):
     # legacy plaintext secrets keep verifying (see app/core/totp_crypto.py).
     admin_totp_enc_key: str = ""
 
-    google_client_id: str = ""
-    google_client_secret: str = ""
-    google_redirect_uri: str = ""
-
     max_discount_percent: int = 50
     default_language: str = "en"
     internal_api_url: str = "http://backend:8000"
