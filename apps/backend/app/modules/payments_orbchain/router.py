@@ -24,14 +24,28 @@ def _verify(raw: bytes, signature: str, secret: str) -> bool:
 
 
 def _credited_usd(event: dict) -> float:
-    """USD actually credited for a payment. OrbChain's webhook leaves the top-level
-    `amount` null and reports the real value per settled transaction; sum the
-    CREDITED ones."""
-    return sum(
-        float(t.get("amount_usd") or 0)
-        for t in (event.get("transactions") or [])
-        if str(t.get("status", "")).upper() == "CREDITED"
-    )
+    """USD actually credited for a payment. On the multi-transaction shape the
+    top-level `amount` is null and the real value is per settled transaction, so
+    sum the CREDITED ones; fall back to a top-level `amount_usd` when the event
+    carries no transactions array."""
+    txs = event.get("transactions") or []
+    if txs:
+        return sum(
+            float(t.get("amount_usd") or 0)
+            for t in txs
+            if str(t.get("status", "")).upper() == "CREDITED"
+        )
+    return float(event.get("amount_usd") or 0)
+
+
+def _is_paid(event: dict, event_type_header: str) -> bool:
+    """Confirmed-payment signal. OrbChain's v2 envelope names the event
+    `payment.paid` (in the body `event_type`/`type` and the `X-Event-Type`
+    header); the older/simple shape sends `type == "payment"` + `status == "paid"`."""
+    etype = str(event.get("event_type") or event.get("type") or event_type_header or "").lower()
+    if etype == "payment.paid":
+        return True
+    return etype == "payment" and str(event.get("status") or "").lower() == "paid"
 
 
 @router.post("/webhook/orbchain")
@@ -50,14 +64,15 @@ async def orbchain_webhook(request: Request, db: AsyncSession = Depends(get_db))
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON") from None
 
-    etype = event.get("type")
-    status = (event.get("status") or "").lower()
-    order_id = event.get("order_id")
-    track_id = event.get("track_id") or ""
+    # Signature already verified, so this body is trustworthy: log it once so the
+    # exact live event shape (order_id, transaction fields) is observable without
+    # a redeploy — deliberate, given webhooks are low-volume payment events.
+    logger.info("OrbChain webhook: %s", raw.decode("utf-8", "replace"))
 
-    # Only act on a confirmed payment tied to one of our orders.
-    if etype == "payment" and status == "paid" and order_id:
+    order_id = event.get("order_id")
+    if _is_paid(event, request.headers.get("x-event-type", "")) and order_id:
         credited = _credited_usd(event)
+        track_id = event.get("track_id") or ""
         result = await OrderService(db).fulfill(
             invoice_payload=str(order_id),
             telegram_payment_charge_id=f"orb:{track_id}",
