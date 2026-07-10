@@ -77,7 +77,9 @@ class Setting(Base):
     sub_price_week_stars: Mapped[int] = mapped_column(Integer, default=99)
     sub_price_month_stars: Mapped[int] = mapped_column(Integer, default=299)
     sub_price_year_stars: Mapped[int] = mapped_column(Integer, default=2499)
-    # OrbChain webhook signing secret — pushed from the merchant dashboard, never exposed to the client.
+    # ponytail: legacy, unused — the OrbChain webhook secret now lives only in env
+    # (ORBCHAIN_WEBHOOK_SECRET). Column kept so the model matches the prod DB;
+    # dropping it needs a migration and isn't worth one.
     orbchain_webhook_secret: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # Private channel the bot copies purchased videos from (numeric id, e.g. -100…).
     delivery_channel_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
