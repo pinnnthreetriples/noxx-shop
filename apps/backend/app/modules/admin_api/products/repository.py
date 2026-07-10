@@ -14,6 +14,8 @@ class ProductAdminRepository:
         stmt = select(Product)
         if f.q:
             stmt = stmt.where(search_ilike([Product.slug, Product.google_drive_link], f.q))
+        if f.category_id:
+            stmt = stmt.where(Product.category_id == f.category_id)
         if f.status:
             stmt = stmt.where(Product.status == f.status)
         else:

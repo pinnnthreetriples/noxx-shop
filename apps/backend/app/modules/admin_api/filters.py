@@ -12,6 +12,7 @@ class AdminListFilters:
     """Pagination + sort params for react-admin data provider."""
     q: Optional[str] = None
     status: Optional[str] = None
+    category_id: Optional[int] = None
     sort_field: str = "id"
     order: str = "ASC"
     start: int = 0
