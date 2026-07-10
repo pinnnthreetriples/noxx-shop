@@ -16,13 +16,18 @@ from app.core.config import settings
 def main() -> None:
     if not r2.r2_enabled():
         raise SystemExit("R2 is not configured (set R2_* env vars). Aborting.")
+    # Only the admin needs canvas-readable media (frame capture); the miniapp
+    # uses plain <img>/<video> without CORS. Fall back to * if the admin URL
+    # is not configured. NB: this REPLACES the bucket's whole CORS config.
+    origin = (settings.admin_public_url or "").rstrip("/")
+    origins = [origin] if origin else ["*"]
     client = r2._get_client()
     client.put_bucket_cors(
         Bucket=settings.r2_bucket,
         CORSConfiguration={
             "CORSRules": [
                 {
-                    "AllowedOrigins": ["*"],
+                    "AllowedOrigins": origins,
                     "AllowedMethods": ["GET", "HEAD"],
                     "AllowedHeaders": ["*"],
                     "MaxAgeSeconds": 86400,
@@ -30,7 +35,7 @@ def main() -> None:
             ]
         },
     )
-    print(f"CORS rule set on bucket «{settings.r2_bucket}»: GET/HEAD from any origin.")
+    print(f"CORS rule set on bucket «{settings.r2_bucket}»: GET/HEAD from {origins}.")
 
 
 if __name__ == "__main__":

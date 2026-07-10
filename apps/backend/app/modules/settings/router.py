@@ -41,8 +41,3 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
 @router.get("/languages", response_model=List[LanguageOut])
 async def get_languages():
     return [LanguageOut(code=k, name=v) for k, v in LANGUAGE_NAMES.items()]
-
-
-@router.get("/health")
-async def health():
-    return {"status": "ok"}

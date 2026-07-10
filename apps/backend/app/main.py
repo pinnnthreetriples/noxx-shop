@@ -137,11 +137,24 @@ app.include_router(admin_api_router)
 app.include_router(internal_api_router)
 
 
+_health_ok_until = 0.0
+
+
 @app.get("/health")
 async def health():
     """Uptime-monitor probe (public via the miniapp's /api proxy). Pings the DB
-    so a dead Postgres turns into a 500 the monitor can alert on."""
+    so a dead Postgres turns into a 503 the monitor can alert on. A successful
+    ping is cached for 5s so a request flood can't drain the connection pool,
+    and failures return an explicit 503 instead of spamming Sentry."""
+    global _health_ok_until
+    import time
+    from fastapi.responses import JSONResponse
     from sqlalchemy import text
-    async with engine.connect() as conn:
-        await conn.execute(text("SELECT 1"))
+    if time.monotonic() >= _health_ok_until:
+        try:
+            async with engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+        except Exception:
+            return JSONResponse({"status": "db_unavailable"}, status_code=503)
+        _health_ok_until = time.monotonic() + 5
     return {"status": "ok"}

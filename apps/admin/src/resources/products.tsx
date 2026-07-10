@@ -208,10 +208,10 @@ const PreviewVideoInput = () => {
     const f = e.target.files?.[0]
     if (!f) return
     const url = URL.createObjectURL(f)
-    setObjUrl(url)
     setBusy(true)
     try {
       field.onChange(await uploadToMedia(f))
+      setObjUrl(url) // adopt the local preview only after the upload succeeded
       notify('Видео загружено', { type: 'success' })
       if (!getValues('cover_url')) {
         try {
@@ -222,6 +222,7 @@ const PreviewVideoInput = () => {
         }
       }
     } catch (err) {
+      URL.revokeObjectURL(url)
       notify(`Ошибка загрузки: ${errText(err)}`, { type: 'error' })
     } finally {
       setBusy(false)
