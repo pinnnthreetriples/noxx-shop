@@ -91,6 +91,30 @@ def test_public_payment_webhook_route_removed():
     # the authenticated crypto path and the signed OrbChain webhook remain
     assert "/orders/{order_id}/check-payment" in paths
     assert "/webhook/orbchain" in paths
+    # the internal secret-push endpoint is gone: env is the only secret source
+    assert "/internal/orbchain/webhook-secret" not in paths
+
+
+async def test_orbchain_webhook_uses_env_secret(monkeypatch):
+    """The webhook secret comes only from env config (no DB read): a body signed
+    with settings.orbchain_webhook_secret passes; a bad signature gets 401."""
+    import hashlib
+    import hmac
+
+    from httpx import ASGITransport, AsyncClient
+
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "orbchain_webhook_secret", "env-webhook-secret")
+    body = b'{"type": "ping"}'
+    good_sig = hmac.new(b"env-webhook-secret", body, hashlib.sha512).hexdigest()
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        ok = await c.post("/webhook/orbchain", content=body, headers={"hmac": good_sig})
+        assert ok.status_code == 200
+        bad = await c.post("/webhook/orbchain", content=body, headers={"hmac": "f" * 128})
+        assert bad.status_code == 401
 
 
 def test_credited_usd_sums_only_credited_transactions():

@@ -6,23 +6,14 @@ import json
 import logging
 
 from fastapi import APIRouter, Depends, Request, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.modules.admin.models import Setting
 from app.modules.orders.service import OrderService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="")
-
-
-async def _webhook_secret(db: AsyncSession) -> str:
-    # DB value (pushed from the merchant dashboard) wins; env is the fallback.
-    row = await db.execute(select(Setting.orbchain_webhook_secret).limit(1))
-    secret = row.scalar_one_or_none()
-    return secret or settings.orbchain_webhook_secret or ""
 
 
 def _verify(raw: bytes, signature: str, secret: str) -> bool:
@@ -50,8 +41,8 @@ async def orbchain_webhook(request: Request, db: AsyncSession = Depends(get_db))
     # raw body, keyed by webhook_secret); accept x-signature too for safety.
     signature = request.headers.get("hmac") or request.headers.get("x-signature") or ""
 
-    secret = await _webhook_secret(db)
-    if not _verify(raw, signature, secret):
+    # Env is the single source of truth for the webhook secret (like the API key).
+    if not _verify(raw, signature, settings.orbchain_webhook_secret):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
     try:
