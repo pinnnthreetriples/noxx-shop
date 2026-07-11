@@ -143,13 +143,14 @@ export function useNoxx() {
   const [promoVisible, setPromoVisible] = React.useState(true)
   const [gateChecked, setGateChecked] = React.useState(false)
 
-  // Stars→USD rate: admin "manual" rate wins; "auto" = the design-baseline 0.02
-  // (mirrors the backend default in core/config.py).
+  // Stars→USD rate: the server sends the effective rate (manual wins, else the
+  // built-in one) as star_usd_rate; 0.02 is only the fallback while loading.
   const settingsQ = useQuery({
     queryKey: ['settings'],
     queryFn: async () => (await api.get<{
       stars_to_usd_mode?: string
       manual_stars_to_usd_rate?: number | null
+      star_usd_rate?: number
       subscription_coming_soon_enabled?: boolean
       subscription_coming_soon_text?: string | null
       terms_text_en?: string | null
@@ -166,8 +167,8 @@ export function useNoxx() {
     }>('/settings')).data,
     staleTime: 5 * 60_000,
   })
-  const starRate = settingsQ.data?.stars_to_usd_mode === 'manual' && settingsQ.data?.manual_stars_to_usd_rate
-    ? Number(settingsQ.data.manual_stars_to_usd_rate) : STAR_USD
+  const starRate = Number(settingsQ.data?.star_usd_rate) > 0
+    ? Number(settingsQ.data?.star_usd_rate) : STAR_USD
 
   const productsQ = useProducts()
   const products = React.useMemo(() => productsQ.data ?? [], [productsQ.data])
@@ -388,6 +389,9 @@ export function useNoxx() {
   })
   const est = estimateQ.data
   const coToPayStars = est?.to_pay_stars ?? cartTotalStars
+  // Subtotal from the server estimate too — cached catalog prices can go stale
+  // after an admin price/commission change and must not contradict the invoice.
+  const coSubtotalStars = est?.total_stars ?? cartTotalStars
   // Row labels keyed by the admin-configured tier percents
   const sset = settingsQ.data
   const DISCOUNT_LABELS: Record<number, string> = {
@@ -400,8 +404,8 @@ export function useNoxx() {
   // so the promo row absorbs the max_discount cap when it kicks in.
   const basePct = est?.base_discount_percent ?? 0
   const promoPct = est?.promo_discount_percent ?? 0
-  const totalSave = cartTotalStars - coToPayStars
-  const baseSave = promoPct > 0 ? Math.min(Math.floor(cartTotalStars * basePct / 100), totalSave) : totalSave
+  const totalSave = coSubtotalStars - coToPayStars
+  const baseSave = promoPct > 0 ? Math.min(Math.floor(coSubtotalStars * basePct / 100), totalSave) : totalSave
   const coDiscountRows = [
     ...(basePct > 0 ? [{ label: DISCOUNT_LABELS[basePct] ?? 'Discount', pct: basePct, stars: '−' + baseSave, usd: '−' + fmtUsd(baseSave * starRate) }] : []),
     ...(promoPct > 0 ? [{ label: 'Promo' + (promoApplied ? ' · ' + promoApplied.toUpperCase() : ''), pct: promoPct, stars: '−' + (totalSave - baseSave), usd: '−' + fmtUsd((totalSave - baseSave) * starRate) }] : []),
@@ -606,7 +610,7 @@ export function useNoxx() {
     coItems: cartRecs.map(vmVideo),
     coTotalFmt: String(coToPayStars), coTotalUsd: fmtUsd(coToPayStars * starRate),
     coDiscountRows, coHasDiscount: coDiscountRows.length > 0,
-    coSubtotalFmt: String(cartTotalStars), coSubtotalUsd: fmtUsd(cartTotalUsdN),
+    coSubtotalFmt: String(coSubtotalStars), coSubtotalUsd: fmtUsd(coSubtotalStars * starRate),
     // promo code entry — validated by the same /cart/estimate call
     promoValue: promoInput,
     promoOnChange: (e: React.ChangeEvent<HTMLInputElement>) => setPromoInput(e.target.value),
