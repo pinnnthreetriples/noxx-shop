@@ -222,7 +222,7 @@ export default function PaymentPage() {
             {/* exact amount */}
             <div style={CARD}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ fontSize: '13.5px', color: '#8c828c' }}>Send exactly</span>
+                <span style={{ fontSize: '13.5px', color: '#ff8fbf', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: '2px' }}>Send exactly</span>
                 <span style={{ fontSize: '12.5px', color: '#8c828c' }}>{sel.pay_currency}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

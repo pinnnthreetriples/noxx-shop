@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import json
+import html
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 
@@ -43,6 +44,14 @@ from app.modules.orders.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Localized "My purchases" label for the delivery-message button, one per
+# supported Mini App language (mo = Moldovan, same wording as Romanian).
+_MY_PURCHASES = {
+    "en": "My purchases", "ru": "Мои покупки", "de": "Meine Käufe",
+    "el": "Οι αγορές μου", "ro": "Achizițiile mele", "mo": "Achizițiile mele",
+    "bg": "Моите покупки", "sr": "Моје куповине", "tr": "Satın aldıklarım",
+}
 
 
 class OrderService:
@@ -620,6 +629,7 @@ class OrderService:
                     "message_text": result["message_text"],
                     "channel_id": result.get("channel_id"),
                     "videos": result.get("videos") or [],
+                    "button": result.get("button"),
                 }))
             finally:
                 await r.aclose()
@@ -676,22 +686,38 @@ class OrderService:
         videos: List[int] = []
         if order.subscription_plan:
             until = user.premium_until.strftime("%b %d, %Y") if user.premium_until else ""
-            message_text = f"Premium activated! Your subscription is active until {until}."
+            message_text = (
+                "✅ <b>Premium activated!</b>\n\n"
+                f"Your subscription is active until <b>{until}</b>.\n\n"
+                "Enjoy! 💜"
+            )
         else:
             row = await self._settings_row()
             channel_id = (getattr(row, "delivery_channel_id", None) or "").strip() or None
-            lines = [f"Thanks for your purchase!\n\nOrder #{order_id}\n"]
+            lines = [
+                "✅ <b>Payment successful!</b>",
+                f"🧾 Order #{order_id}",
+                "\n🎬 <b>Your videos</b>",
+            ]
             for idx, (_, product, translation) in enumerate(items, 1):
-                title = translation.title if translation else (product.slug if product else "Item")
+                # HTML parse mode is on, so escape the admin-entered title.
+                title = html.escape(translation.title if translation else (product.slug if product else "Item"))
                 # Native Telegram delivery when the product is mapped to a channel
                 # message; otherwise fall back to the Google Drive link in the text.
                 if channel_id and product and product.tg_message_id:
                     videos.append(product.tg_message_id)
-                    lines.append(f"{idx}. {title}")
+                    lines.append(f"   {idx}. {title}")
                 else:
-                    link = (product.google_drive_link if product else "") or "Link unavailable"
-                    lines.append(f"{idx}. {title} — {link}")
+                    link = (product.google_drive_link if product else "") or ""
+                    lines.append(f'   {idx}. {title}\n      🔗 {html.escape(link)}' if link else f"   {idx}. {title} — link unavailable")
+            lines.append("\nEnjoy watching! 💜")
             message_text = "\n".join(lines)
+
+        # Localized "My purchases" web-app button -> opens the Mini App at /purchases.
+        lang = (user.selected_language or user.language_code or "en").lower()
+        label = _MY_PURCHASES.get(lang) or _MY_PURCHASES.get(lang[:2], _MY_PURCHASES["en"])
+        webapp = settings.telegram_webapp_url.rstrip("/")
+        button = {"text": label, "url": f"{webapp}/purchases"} if webapp else None
 
         return {
             "ok": True,
@@ -700,6 +726,7 @@ class OrderService:
             "message_text": message_text,
             "channel_id": channel_id,
             "videos": videos,
+            "button": button,
         }
 
 
