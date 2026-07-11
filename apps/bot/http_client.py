@@ -122,6 +122,12 @@ class InternalAPIClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def pop_premium_reminders(self) -> dict:
+        """Returns {reminders: [{user_telegram_id, message_text, button}]}."""
+        resp = await self.client.post("/internal/bot/premium-reminders/pop")
+        resp.raise_for_status()
+        return resp.json()
+
     async def mark_ticket_notified(self, ticket_id: int) -> dict:
         resp = await self.client.post(f"/internal/support/tickets/{ticket_id}/mark-notified")
         resp.raise_for_status()

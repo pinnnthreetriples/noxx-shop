@@ -74,6 +74,8 @@ async def subscription_claim(
     db: AsyncSession = Depends(get_db),
 ):
     """Premium perk: active subscriber gets a premium video for free."""
+    if await too_many_attempts(f"claim:{user.id}", limit=20, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Too many requests, slow down")
     try:
         return await OrderService(db).claim_with_premium(user, body.product_id)
     except ValueError as e:

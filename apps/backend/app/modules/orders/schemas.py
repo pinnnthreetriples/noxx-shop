@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
@@ -48,7 +48,7 @@ class CheckoutIn(BaseModel):
 
 
 class SubscriptionCheckoutIn(BaseModel):
-    plan: str  # "week" | "month" | "year"
+    plan: Literal["week", "month", "year"]
     provider: Optional[str] = None
 
 

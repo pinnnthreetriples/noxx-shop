@@ -12,6 +12,19 @@ class UserRepository:
         result = await self.db.execute(select(User).where(User.id == user_id))
         return result.scalars().first()
 
+    async def get_by_id_for_update(self, user_id: int) -> Optional[User]:
+        """SELECT ... FOR UPDATE: serializes concurrent premium_until writes for
+        one user. populate_existing so a session that already loaded this user
+        (the Stars/polling paths do) sees the row as re-read under the lock,
+        not the stale identity-map copy."""
+        result = await self.db.execute(
+            select(User)
+            .where(User.id == user_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return result.scalars().first()
+
     async def get_by_telegram_id(self, telegram_id: int) -> Optional[User]:
         result = await self.db.execute(select(User).where(User.telegram_id == telegram_id))
         return result.scalars().first()

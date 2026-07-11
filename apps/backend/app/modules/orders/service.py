@@ -245,6 +245,11 @@ class OrderService:
         # same withdrawal-commission gross-up as products, so the buyer covers it
         if s and s.withdrawal_commission_enabled:
             stars = gross_stars(stars, True, s.withdrawal_commission_percent)
+        # Double-tap guard: re-use the newest unpaid order for this plan instead
+        # of piling up pending duplicates. A price change makes a fresh order.
+        pending = await self.order_repo.find_pending_subscription(user.id, plan)
+        if pending and pending.paid_stars == stars:
+            return await self._invoice_for_order(pending.id, stars, provider)
         order = await self.order_repo.create(
             user_id=user.id,
             total_stars=stars,
@@ -575,8 +580,25 @@ class OrderService:
                 return {"ok": False, "error": "underpaid",
                         "paid_usd": paid_usd, "expected_usd": expected_usd}
 
-        # 1. status pending -> paid
-        await self.order_repo.set_status_paid(order_id)
+        # 1. status pending -> paid. The conditional flip is the concurrency gate:
+        # of two racing fulfillments (webhook + polling, double webhook) only one
+        # sees rowcount 1; the loser re-reads and returns the winner's result
+        # without re-running side effects.
+        if not await self.order_repo.set_status_paid(order_id):
+            await self.db.refresh(order)
+            if order.status == OrderStatus.paid:
+                if telegram_payment_charge_id and not await self.payment_repo.find_by_telegram_charge_id(
+                    telegram_payment_charge_id
+                ):
+                    # Unseen charge id on an already-paid order = a real second
+                    # payment (e.g. a stale duplicate invoice), not a webhook
+                    # retry — surface it for support/refund instead of silence.
+                    logger.warning(
+                        "Duplicate payment for already-paid order %s (charge %s)",
+                        order_id, telegram_payment_charge_id,
+                    )
+                return await self._build_delivery_result(order_id)
+            return {"ok": False, "error": f"Order not fulfillable (status={order.status.value})"}
         # 2. payment record
         await self.payment_repo.create(
             order_id=order_id,
@@ -592,7 +614,9 @@ class OrderService:
         if order.subscription_plan:
             # 3./4. Subscription order: extend premium access instead of delivering links.
             days = self.SUB_DAYS.get(order.subscription_plan, 30)
-            buyer = await self.user_repo.get_by_id(order.user_id)
+            # Row-lock the buyer: two orders fulfilled concurrently must not both
+            # read the same premium_until and overwrite each other's extension.
+            buyer = await self.user_repo.get_by_id_for_update(order.user_id)
             if buyer:
                 now = datetime.now(timezone.utc)
                 base = buyer.premium_until if buyer.premium_until and buyer.premium_until > now else now

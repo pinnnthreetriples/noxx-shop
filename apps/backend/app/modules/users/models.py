@@ -25,6 +25,8 @@ class User(Base):
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
     # Prepaid premium subscription: access until this moment (no auto-renewal).
     premium_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # When the "Premium expires soon" reminder for the current paid period was sent.
+    premium_reminder_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     started_bot_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -65,6 +65,10 @@ async def _add_missing_columns(conn):
     await conn.exec_driver_sql(
         "ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0"
     )
+    # Premium-expiry reminder bookkeeping (also in alembic migration 7c2a91d4b6e3).
+    await conn.exec_driver_sql(
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_reminder_sent_at TIMESTAMPTZ"
+    )
 
 
 @asynccontextmanager
