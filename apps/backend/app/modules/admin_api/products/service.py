@@ -67,12 +67,18 @@ class ProductAdminService:
         return data
     
     async def _apply_pricing_rules(self, payload: dict, current: Optional[Product] = None) -> None:
-        """The shop charges Stars; USD is secondary. When Stars is empty but a
-        manual USD price is set, derive Stars from the effective rate — and a
-        published product must never end up costing 0 Stars."""
+        """The shop charges Stars; USD is secondary. Stars are derived from the
+        USD price when Stars is empty — or when the admin changed USD without
+        touching Stars (bulk repricing in $ must not leave stale Stars). An
+        explicitly edited Stars value always wins. A published product must
+        never end up costing 0 Stars."""
         stars = payload.get("price_stars", current.price_stars if current else 0) or 0
         usd = payload.get("usd_price_manual", current.usd_price_manual if current else None)
-        if stars <= 0 and usd and float(usd) > 0:
+        cur_stars = (current.price_stars if current else 0) or 0
+        cur_usd = float(current.usd_price_manual) if current is not None and current.usd_price_manual else None
+        usd_changed = "usd_price_manual" in payload and (float(usd) if usd else None) != cur_usd
+        stars_untouched = "price_stars" not in payload or stars == cur_stars
+        if usd and float(usd) > 0 and (stars <= 0 or (usd_changed and stars_untouched)):
             rate = await OrderService(self.db)._star_rate()
             stars = max(int(round(float(usd) / rate)), 1)
             payload["price_stars"] = stars

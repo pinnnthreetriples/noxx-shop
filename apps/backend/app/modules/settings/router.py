@@ -2,10 +2,11 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.core.config import settings as config
 from app.core.database import get_db
 from app.modules.admin.schemas import SettingsOut
 from app.modules.admin.schemas import LanguageOut
-from app.modules.pricing import gross_stars
+from app.modules.pricing import effective_star_rate, gross_stars
 from app.models import Setting
 
 router = APIRouter(prefix="")
@@ -29,6 +30,9 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
         await db.commit()
         await db.refresh(setting)
     out = SettingsOut.model_validate(setting)
+    out.star_usd_rate = effective_star_rate(
+        setting.stars_to_usd_mode, setting.manual_stars_to_usd_rate, config.star_usd_rate
+    )
     if setting.withdrawal_commission_enabled:
         # buyer-facing subscription prices carry the same commission gross-up as products
         pct = setting.withdrawal_commission_percent

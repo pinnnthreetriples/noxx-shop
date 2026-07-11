@@ -3,8 +3,8 @@ import {
   List, Datagrid, TextField, NumberField, BooleanField, EditButton, DeleteButton,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput, SelectField, Create,
   ReferenceInput, ReferenceArrayInput, AutocompleteInput, AutocompleteArrayInput,
-  ReferenceField, FunctionField,
-  useInput, useNotify,
+  ReferenceField, FunctionField, FormDataConsumer,
+  useInput, useNotify, useGetOne,
 } from 'react-admin'
 import { useFormContext } from 'react-hook-form'
 import { Box, Button, CircularProgress, Divider, IconButton, Typography } from '@mui/material'
@@ -282,6 +282,68 @@ const statusChoices = [
   { id: 'deleted', name: 'Удалён' },
 ]
 
+// Mirrors backend pricing math exactly (admin_api/products/service.py +
+// modules/pricing.py): base stars from USD, buyer-facing gross-up on top.
+const starsFromUsd = (usd: number, rate: number) => Math.max(Math.round(usd / rate), 1)
+const grossStars = (base: number, enabled: boolean, percent: number) =>
+  !enabled || base <= 0 || percent <= 0 ? base : Math.round(base / (1 - Math.min(percent, 95) / 100))
+
+type PricingSettings = {
+  stars_to_usd_mode?: string
+  manual_stars_to_usd_rate?: number | null
+  star_usd_rate?: number
+  withdrawal_commission_enabled?: boolean
+  withdrawal_commission_percent?: number
+}
+
+// "Цена" section: typing a USD price live-derives the Stars price (the same
+// rule the backend applies on save), and a preview line shows what the buyer
+// will actually pay — including the withdrawal-commission gross-up.
+const PricingFields = ({ create = false }: { create?: boolean }) => {
+  const { setValue } = useFormContext()
+  const { data: cfg } = useGetOne<PricingSettings & { id: number }>('settings', { id: 1 })
+  // effective rate: manual (when valid) wins, else built-in; 0 while loading
+  const rate = cfg?.stars_to_usd_mode === 'manual' && Number(cfg.manual_stars_to_usd_rate) > 0
+    ? Number(cfg.manual_stars_to_usd_rate) : Number(cfg?.star_usd_rate) || 0
+  const onUsdChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const usd = parseFloat(e.target.value)
+    if (rate > 0 && Number.isFinite(usd) && usd > 0) {
+      setValue('price_stars', starsFromUsd(usd, rate), { shouldDirty: true })
+    }
+  }
+  return (
+    <>
+      <Row>
+        <NumberInput source="price_stars" label="Цена (Stars)" helperText="База: столько Stars получишь ты" />
+        <NumberInput
+          source="usd_price_manual"
+          label="Цена (USD)"
+          onChange={onUsdChange}
+          helperText={rate > 0 ? `Курс 1⭐ = $${rate} — Stars пересчитаются сами` : ' '}
+        />
+        <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} defaultValue={create ? 'auto' : undefined} label="Цена в $ на витрине" helperText="Авто — из Stars по курсу" />
+      </Row>
+      <FormDataConsumer>
+        {({ formData }) => {
+          const base = Number(formData.price_stars) || 0
+          if (base <= 0 || !cfg) return null
+          const commissionOn = !!cfg.withdrawal_commission_enabled
+          const pct = Number(cfg.withdrawal_commission_percent) || 0
+          const buyerStars = grossStars(base, commissionOn, pct)
+          const buyerUsd = rate > 0 ? ` (≈ $${(buyerStars * rate).toFixed(2)})` : ''
+          const net = rate > 0 ? ` · тебе ≈ $${(base * rate).toFixed(2)}` : ''
+          return (
+            <Typography variant="caption" sx={{ color: 'text.secondary', mt: -1.5, mb: 1 }}>
+              Покупатель заплатит: <b>{buyerStars} ⭐</b>{buyerUsd}
+              {commissionOn && pct > 0 ? ` · вкл. компенсацию комиссии ${pct}%${net}` : ''}
+            </Typography>
+          )
+        }}
+      </FormDataConsumer>
+    </>
+  )
+}
+
 const ProductFormFields = ({ create = false }: { create?: boolean }) => (
   <>
     <Row>
@@ -292,11 +354,7 @@ const ProductFormFields = ({ create = false }: { create?: boolean }) => (
       </ReferenceInput>
     </Row>
     <Section title="Цена" />
-    <Row>
-      <NumberInput source="price_stars" label="Цена (Stars)" helperText="Пусто или 0 — посчитается из «Цена (USD)» по курсу" />
-      <NumberInput source="usd_price_manual" label="Цена (USD)" helperText=" " />
-      <SelectInput source="usd_price_mode" choices={[{ id: 'auto', name: 'Авто' }, { id: 'manual', name: 'Вручную' }]} defaultValue={create ? 'auto' : undefined} label="Цена в $ на витрине" helperText="Авто — из Stars по курсу" />
-    </Row>
+    <PricingFields create={create} />
     <Section title="Медиа" />
     <Row>
       <CoverInput />

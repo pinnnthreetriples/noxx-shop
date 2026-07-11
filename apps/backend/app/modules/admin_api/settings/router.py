@@ -1,5 +1,5 @@
 """Settings router - thin API layer."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.auth import get_current_admin
@@ -34,7 +34,10 @@ async def update_settings(
     db: AsyncSession = Depends(get_db),
 ):
     service = SettingsAdminService(db)
-    return await service.update(admin, payload)
+    try:
+        return await service.update(admin, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 # react-admin getOne/update address the singleton as /settings/{id}

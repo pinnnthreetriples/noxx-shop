@@ -52,6 +52,34 @@ async def test_checkout_charges_grossed(db_session):
     assert est.total_stars == 769
 
 
+async def test_negative_discount_cap_never_overcharges(db_session):
+    """A mis-set (negative) max_discount_percent must clamp to 0% — the buyer
+    must never pay MORE than the listed total."""
+    await _set_commission(db_session, False)
+    s = await db_session.get(Setting, 1)
+    old_cap = s.max_discount_percent
+    s.max_discount_percent = -10
+    await db_session.commit()
+    try:
+        await _add_product(db_session, 813, "vid813")
+        est = await OrderService(db_session).estimate_cart(USER, [813])
+        assert est.to_pay_stars == est.total_stars
+    finally:
+        s.max_discount_percent = old_cap
+        await db_session.commit()
+
+
+async def test_subscription_checkout_charges_grossed(db_session):
+    from app.modules.orders.models import Order
+    await _set_commission(db_session, True, 35)
+    s = await db_session.get(Setting, 1)
+    s.sub_price_week_stars = 99
+    await db_session.commit()
+    out = await OrderService(db_session).create_subscription_checkout(USER, "week")
+    order = await db_session.get(Order, out.order_id)
+    assert order.paid_stars == 152  # 99 / 0.65, buyer covers the commission
+
+
 async def test_toggle_off_restores_base(db_session):
     await _set_commission(db_session, False)
     await _add_product(db_session, 812, "vid812")
