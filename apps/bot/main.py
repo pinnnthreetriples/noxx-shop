@@ -27,7 +27,7 @@ if SENTRY_DSN:
 from .http_client import api_client
 from .handlers import start as handlers_start
 from .handlers import pre_checkout, successful_payment, admin_reply
-from .workers import ticket_notifications, notification_dispatch, delivery_dispatch
+from .workers import ticket_notifications, notification_dispatch, delivery_dispatch, premium_reminder_dispatch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -59,6 +59,7 @@ async def on_startup():
     _spawn(ticket_notifications.periodic_ticket_checker())
     _spawn(notification_dispatch.notification_dispatcher())
     _spawn(delivery_dispatch.delivery_dispatcher())
+    _spawn(premium_reminder_dispatch.premium_reminder_dispatcher())
 
 
 @dp.shutdown()

@@ -105,8 +105,29 @@ class OrderRepository:
         )
         return list(result.scalars().all())
 
-    async def set_status_paid(self, order_id: int) -> None:
-        await self.db.execute(update(Order).where(Order.id == order_id).values(status="paid"))
+    async def set_status_paid(self, order_id: int) -> bool:
+        """Flip pending → paid. False means the order wasn't pending (already
+        paid or cancelled) — the caller must not run fulfillment side effects."""
+        result = await self.db.execute(
+            update(Order)
+            .where(Order.id == order_id, Order.status == OrderStatus.pending)
+            .values(status="paid")
+        )
+        return bool(result.rowcount)
+
+    async def find_pending_subscription(self, user_id: int, plan: str) -> Optional[Order]:
+        """Newest unpaid subscription order for this plan (checkout re-use)."""
+        result = await self.db.execute(
+            select(Order)
+            .where(
+                Order.user_id == user_id,
+                Order.status == OrderStatus.pending,
+                Order.subscription_plan == plan,
+            )
+            .order_by(Order.created_at.desc())
+            .limit(1)
+        )
+        return result.scalars().first()
 
     async def get_paid_by_id(self, order_id: int) -> Optional[Order]:
         result = await self.db.execute(

@@ -27,9 +27,14 @@ class UserAdminService:
         old_blocked = user.is_blocked
         # react-admin sends datetimes as ISO strings; the DateTime column needs a real datetime
         if isinstance(payload.get("premium_until"), str):
-            from datetime import datetime
+            from datetime import datetime, timezone
             v = payload["premium_until"].strip()
-            payload["premium_until"] = datetime.fromisoformat(v.replace("Z", "+00:00")) if v else None
+            dt = datetime.fromisoformat(v.replace("Z", "+00:00")) if v else None
+            # DateTimeInput sends naive local ISO (no Z/offset) — treat it as UTC;
+            # a naive value breaks the tz-aware column and premium_until > now checks.
+            if dt is not None and dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            payload["premium_until"] = dt
         await self.repo.update(user, {k: v for k, v in payload.items() if hasattr(user, k) and k != "id"})
         # Log block/unblock actions
         if "is_blocked" in payload and payload["is_blocked"] != old_blocked:
