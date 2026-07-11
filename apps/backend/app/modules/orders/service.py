@@ -110,8 +110,10 @@ class OrderService:
                 promo_discount = promo_pct
 
         # Cap: admin setting wins, env value is the fallback (same pattern as _star_rate).
+        # Clamp to [0, 100]: a mis-set cap must never overcharge (negative discount)
+        # or make orders free.
         cap = (s.max_discount_percent if s else None) or settings.max_discount_percent
-        final = min(base_discount + promo_discount, cap)
+        final = max(0, min(base_discount + promo_discount, cap, 100))
         return {
             "base_discount_percent": base_discount,
             "promo_discount_percent": promo_discount,
@@ -290,13 +292,14 @@ class OrderService:
     async def _star_rate(self) -> float:
         """Effective Stars→USD rate: admin setting "manual" wins, "auto" = built-in rate."""
         from app.modules.admin.models import Setting
+        from app.modules.pricing import effective_star_rate
         row = await self.db.execute(
             select(Setting.stars_to_usd_mode, Setting.manual_stars_to_usd_rate).limit(1)
         )
         s = row.first()
-        if s and s.stars_to_usd_mode == "manual" and s.manual_stars_to_usd_rate:
-            return float(s.manual_stars_to_usd_rate)
-        return settings.star_usd_rate
+        if not s:
+            return settings.star_usd_rate
+        return effective_star_rate(s.stars_to_usd_mode, s.manual_stars_to_usd_rate, settings.star_usd_rate)
 
     async def _amount_usd(self, stars: int) -> float:
         """USD charged for a Stars total (OrbChain has a $0.50 invoice floor)."""

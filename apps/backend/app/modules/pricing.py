@@ -12,6 +12,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+def effective_star_rate(mode, manual_rate, fallback: float) -> float:
+    """Stars→USD rate: a valid (positive) manual rate wins, else the built-in
+    fallback. The single source of this rule — server math and every client
+    display must agree on the rate."""
+    if mode == "manual" and manual_rate and float(manual_rate) > 0:
+        return float(manual_rate)
+    return fallback
+
+
 def gross_stars(base: int, enabled: bool, percent: int) -> int:
     """Buyer-facing Stars price for an owner base price."""
     if not enabled or base <= 0 or percent <= 0:

@@ -11,6 +11,34 @@ from app.modules.admin_api.settings.repository import SettingsAdminRepository
 # and the Google Drive integration token (a credential, not shop data).
 _RESET_KEEP_TABLES = frozenset({"admins", "settings", "alembic_version", "google_drive_tokens"})
 
+# Money-critical bounds. The admin UI enforces the same limits client-side;
+# this guards direct API calls (a negative rate or discount cap would corrupt
+# every price / overcharge buyers).
+_PERCENT_FIELDS = (
+    "withdrawal_commission_percent", "max_discount_percent",
+    "discount_first_purchase_percent", "discount_bulk_percent", "discount_loyalty_percent",
+)
+_MIN1_FIELDS = (
+    "discount_bulk_min_items", "discount_loyalty_min_items",
+    "sub_price_week_stars", "sub_price_month_stars", "sub_price_year_stars",
+)
+
+
+def _validate_pricing_bounds(payload: dict) -> None:
+    rate = payload.get("manual_stars_to_usd_rate")
+    if rate is not None and float(rate) <= 0:
+        raise ValueError("Курс Stars → USD должен быть больше нуля")
+    if payload.get("stars_to_usd_mode") not in (None, "auto", "manual"):
+        raise ValueError("stars_to_usd_mode: только auto или manual")
+    for f in _PERCENT_FIELDS:
+        v = payload.get(f)
+        if v is not None and not 0 <= int(v) <= 100:
+            raise ValueError(f"{f}: допустимо 0–100")
+    for f in _MIN1_FIELDS:
+        v = payload.get(f)
+        if v is not None and int(v) < 1:
+            raise ValueError(f"{f}: минимум 1")
+
 
 class SettingsAdminService:
     def __init__(self, db: AsyncSession):
@@ -33,6 +61,7 @@ class SettingsAdminService:
         return self._with_rate(setting)
 
     async def update(self, admin, payload: dict) -> Setting:
+        _validate_pricing_bounds(payload)
         setting = await self.repo.get_or_create()
         await self.repo.update(setting, {k: v for k, v in payload.items() if hasattr(setting, k) and k != "id"})
         self.db.add(AdminLog(admin_id=admin.id, action="update_settings", entity_type="settings", entity_id=setting.id))

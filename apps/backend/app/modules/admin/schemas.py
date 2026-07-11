@@ -27,6 +27,9 @@ class SettingsOut(BaseModel):
     default_language: str
     stars_to_usd_mode: str
     manual_stars_to_usd_rate: Optional[float] = None
+    # effective Stars→USD rate (manual wins, else built-in) — the client must
+    # use this for ≈$ display instead of hardcoding its own copy of the rate
+    star_usd_rate: float = 0.02
     max_discount_percent: int
     subscription_coming_soon_enabled: bool
     subscription_coming_soon_text: Optional[str] = None

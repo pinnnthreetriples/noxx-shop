@@ -41,9 +41,15 @@ const UsdHint = ({ fd, source }: { fd: Record<string, unknown>; source: string }
   const rate = rateOf(fd)
   const stars = Number(fd[source])
   if (!rate || !stars) return null
+  // same gross-up as the backend applies to buyer-facing subscription prices
+  const pct = Number(fd.withdrawal_commission_percent) || 0
+  const gross = fd.withdrawal_commission_enabled && pct > 0
+    ? Math.round(stars / (1 - Math.min(pct, 95) / 100))
+    : stars
   return (
     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1, mb: 2 }}>
       ≈ ${(stars * rate).toFixed(2)}
+      {gross !== stars ? ` · покупатель заплатит ${gross}⭐ (≈ $${(gross * rate).toFixed(2)})` : ''}
     </Typography>
   )
 }
@@ -125,7 +131,13 @@ const SettingsPage = () => (
         <FormDataConsumer>
           {({ formData }) =>
             formData.stars_to_usd_mode === 'manual' ? (
-              <NumberInput source="manual_stars_to_usd_rate" label="Курс Stars → USD (вручную)" />
+              <NumberInput
+                source="manual_stars_to_usd_rate"
+                label="Курс Stars → USD (вручную)"
+                min={0.0001}
+                validate={[minValue(0.0001, 'Курс должен быть больше нуля')]}
+                helperText="Сколько $ стоит 1⭐, напр. 0.02"
+              />
             ) : null
           }
         </FormDataConsumer>

@@ -37,15 +37,18 @@ async def create_invoice(
         "return_url": return_url,
         "lifetime": lifetime_minutes,
     }
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.post(
-            url,
-            json=payload,
-            headers={
-                "Content-Type": "application/json",
-                "merchant_api_key": settings.orbchain_api_key,
-            },
-        )
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                url,
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "merchant_api_key": settings.orbchain_api_key,
+                },
+            )
+    except httpx.HTTPError as e:
+        raise OrbChainError(f"OrbChain unreachable: {type(e).__name__}") from e
     if resp.status_code != 200:
         logger.warning("OrbChain invoice failed %s: %s", resp.status_code, resp.text[:300])
         raise OrbChainError(f"OrbChain invoice failed: HTTP {resp.status_code}")
@@ -62,8 +65,11 @@ async def get_payment(track_id: str) -> Dict[str, Any]:
     if not settings.orbchain_api_key:
         raise OrbChainError("ORBCHAIN_API_KEY not configured")
     url = f"{settings.orbchain_api_base.rstrip('/')}/v1/payment/{track_id}"
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.get(url, headers={"merchant_api_key": settings.orbchain_api_key})
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.get(url, headers={"merchant_api_key": settings.orbchain_api_key})
+    except httpx.HTTPError as e:
+        raise OrbChainError(f"OrbChain unreachable: {type(e).__name__}") from e
     if resp.status_code != 200:
         raise OrbChainError(f"OrbChain status failed: HTTP {resp.status_code}")
     body = resp.json()
@@ -79,13 +85,16 @@ async def select_coin(track_id: str, pay_currency: str) -> Dict[str, Any]:
     no redirect to the hosted page. Returns the invoice `data` (address,
     pay_amount, pay_currency, expires_at, status, ...)."""
     base = settings.orbchain_api_base.rstrip("/")
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-        # Trigger address derivation for this coin (HTML response is ignored).
-        await client.get(
-            f"{base}/pay/{track_id}",
-            params={"pay_currency": pay_currency},
-            headers={"User-Agent": "Mozilla/5.0"},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+            # Trigger address derivation for this coin (HTML response is ignored).
+            await client.get(
+                f"{base}/pay/{track_id}",
+                params={"pay_currency": pay_currency},
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+    except httpx.HTTPError as e:
+        raise OrbChainError(f"OrbChain unreachable: {type(e).__name__}") from e
     return await get_payment(track_id)
 
 

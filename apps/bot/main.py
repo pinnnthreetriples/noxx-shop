@@ -17,6 +17,11 @@ if SENTRY_DSN:
         exc = hint.get("exc_info")
         if exc and isinstance(exc[1], (asyncio.CancelledError, TelegramNetworkError)):
             return None
+        # aiogram's polling loop logs "Failed to fetch updates - TelegramNetworkError: ..."
+        # without exc_info, so the isinstance check above never sees it.
+        record = hint.get("log_record")
+        if record and record.name == "aiogram.dispatcher" and "TelegramNetworkError" in record.getMessage():
+            return None
         return event
     sentry_sdk.init(dsn=SENTRY_DSN, environment=APP_ENV, send_default_pii=False, before_send=_before_send)
 from .http_client import api_client
