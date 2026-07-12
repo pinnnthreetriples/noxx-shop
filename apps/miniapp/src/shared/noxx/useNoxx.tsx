@@ -19,6 +19,14 @@ const STAR_USD = 0.02 // fallback rate; the effective rate comes from GET /setti
 const fmtNum = (n: number) => (n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : String(n))
 const fmtUsd = (n: number) => '$' + n.toFixed(2)
 
+// The welcome offer runs on a rolling 12-hour cycle anchored to wall-clock time,
+// so the countdown ticks for real and restarts from the top when it hits zero.
+const OFFER_CYCLE_MS = 12 * 60 * 60 * 1000
+const fmtCountdown = (ms: number) =>
+  [Math.floor(ms / 3_600_000), Math.floor((ms % 3_600_000) / 60_000), Math.floor((ms % 60_000) / 1000)]
+    .map((n) => String(n).padStart(2, '0'))
+    .join(':')
+
 const MEDIA_BASE = ((import.meta.env.VITE_MEDIA_BASE_URL as string) || '').replace(/\/+$/, '')
 
 // Design-baseline gradients: shown under covers while they load and as
@@ -142,6 +150,13 @@ export function useNoxx() {
   const [selectedPlan, setSelectedPlan] = React.useState('year')
   const [promoVisible, setPromoVisible] = React.useState(true)
   const [gateChecked, setGateChecked] = React.useState(false)
+  const [nowMs, setNowMs] = React.useState(() => Date.now())
+
+  // Drive the welcome-offer countdown once per second.
+  React.useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // Stars→USD rate: the server sends the effective rate (manual wins, else the
   // built-in one) as star_usd_rate; 0.02 is only the fallback while loading.
@@ -595,7 +610,7 @@ export function useNoxx() {
       }
     },
     // home
-    offerCountdown: '11:59:47', homeVideos: recs.slice(0, 4).map(vmVideo),
+    offerCountdown: fmtCountdown(OFFER_CYCLE_MS - (nowMs % OFFER_CYCLE_MS)), homeVideos: recs.slice(0, 4).map(vmVideo),
     dismissPromo: () => setPromoVisible(false), promoVisible,
     // catalog
     catFilters, catalogVideos: catalogRecs.map(vmVideo),
