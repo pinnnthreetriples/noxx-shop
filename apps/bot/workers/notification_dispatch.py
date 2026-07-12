@@ -5,7 +5,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from ..config import WEBAPP_URL
 from ..http_client import api_client
 from ..bot_instance import bot
-from ..i18n import t, green_btn
+from ..i18n import t, btn
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ def _build_message(lang, titles, product_slug, fallback_title, fallback_body, we
     kb = None
     if url.startswith("https://"):
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=green_btn(t(lang, "view")), web_app=WebAppInfo(url=url))],
+            [InlineKeyboardButton(text=btn("🎬", t(lang, "view")), web_app=WebAppInfo(url=url))],
         ])
     return text, kb
 

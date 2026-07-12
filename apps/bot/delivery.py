@@ -8,7 +8,7 @@ import logging
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 from .bot_instance import bot
-from .i18n import green_btn
+from .i18n import btn
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def build_webapp_keyboard(button):
     if not url or not url.startswith("https://"):
         return None
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=green_btn(button.get("text") or "Open"),
+        [InlineKeyboardButton(text=btn("📦", button.get("text") or "Open"),
                               web_app=WebAppInfo(url=url))],
     ])
 

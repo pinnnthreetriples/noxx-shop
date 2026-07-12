@@ -4,7 +4,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, W
 from ..config import WEBAPP_URL
 from ..http_client import api_client
 from ..bot_instance import bot
-from ..i18n import t, green_btn
+from ..i18n import t, btn
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def _view_support_kb(lang: str) -> InlineKeyboardMarkup | None:
     if not WEBAPP_URL.startswith("https://"):
         return None
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=green_btn(t(lang, "view")),
+        [InlineKeyboardButton(text=btn("💬", t(lang, "view")),
                               web_app=WebAppInfo(url=f"{WEBAPP_URL.rstrip('/')}/support"))],
     ])
 
