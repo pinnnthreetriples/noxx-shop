@@ -20,10 +20,27 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({ dsn: import.meta.env.VITE_SENTRY_DSN, environment: import.meta.env.MODE })
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const root = ReactDOM.createRoot(document.getElementById('root')!)
+const app = (
   <React.StrictMode>
     <AppProviders>
       <App />
     </AppProviders>
-  </React.StrictMode>,
+  </React.StrictMode>
 )
+
+// Paint once the app fonts are ready, so text renders in Inter/Playfair from the
+// first frame instead of flashing a fallback and swapping in (FOUT). A short
+// timeout is the safety valve so a slow/failed font load never blocks the UI.
+let started = false
+const start = () => { if (!started) { started = true; root.render(app) } }
+const weights = [
+  '400 1em Inter', '500 1em Inter', '600 1em Inter', '700 1em Inter', '800 1em Inter', '900 1em Inter',
+  '800 italic 1em "Playfair Display"', '900 italic 1em "Playfair Display"',
+]
+if (document.fonts?.load) {
+  Promise.all(weights.map((w) => document.fonts.load(w))).catch(() => {}).finally(start)
+  setTimeout(start, 1000)
+} else {
+  start()
+}

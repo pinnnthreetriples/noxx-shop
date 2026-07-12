@@ -22,6 +22,8 @@ interface AppState {
   setPayMethod: (m: 'stars' | 'crypto') => void
 }
 
+type PersistedState = Pick<AppState, 'language' | 'langChosen' | 'ageConfirmed' | 'cartItems' | 'payMethod'>
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
@@ -56,11 +58,15 @@ export const useAppStore = create<AppState>()(
       setLangChosen: (v) => set({ langChosen: v }),
       ageConfirmed: false,
       setAgeConfirmed: (v) => set({ ageConfirmed: v }),
-      payMethod: 'stars',
+      payMethod: 'crypto',
       setPayMethod: (m) => set({ payMethod: m }),
     }),
     {
       name: 'noxx-store-v3',
+      // v1 flips the default payment method to crypto once for users who still
+      // have the old 'stars' default persisted; their later choice still sticks.
+      version: 1,
+      migrate: (persisted) => ({ ...(persisted as PersistedState), payMethod: 'crypto' as const }),
       partialize: (state) => ({ language: state.language, langChosen: state.langChosen, ageConfirmed: state.ageConfirmed, cartItems: state.cartItems, payMethod: state.payMethod }),
     }
   )
