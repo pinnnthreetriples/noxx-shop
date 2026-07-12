@@ -60,7 +60,7 @@ export default function HomePage() {
           <div style={{"position": "absolute", "right": "-10px", "top": "-10px", "width": "170px", "height": "150px", "background": "radial-gradient(circle at 60% 45%,rgba(255,120,170,.4),transparent 65%)", "filter": "blur(8px)"}} />
           <div style={{"position": "relative", "maxWidth": "62%"}}>
             <div style={{"fontSize": "22px", "fontWeight": "700", "color": "#fff"}}>Premium</div>
-            <div style={{"fontSize": "14px", "color": "rgba(255,255,255,.72)", "marginTop": "3px"}}>Exclusive content.</div>
+            <div style={{"fontSize": "14px", "color": "rgba(255,255,255,.72)", "marginTop": "3px"}}>Exclusive content</div>
             <div style={{"display": "inline-flex", "marginTop": "16px", "padding": "9px 18px", "borderRadius": "20px", "background": "rgba(255,255,255,.06)", "border": "1px solid rgba(255,120,180,.35)", "color": "#ff8ec2", "fontSize": "14px", "fontWeight": "600"}}>Learn more</div>
           </div>
           <div style={{"position": "absolute", "right": "34px", "top": "50%", "transform": "translateY(-50%)", "width": "84px", "height": "84px", "borderRadius": "50%", "background": "radial-gradient(circle at 38% 32%,#ff6ab2,#b23a86)", "display": "flex", "alignItems": "center", "justifyContent": "center", "boxShadow": "0 0 34px rgba(255,90,170,.6)"}}><img src="/crown-icon.png" alt="Premium" style={{"width": "54px", "height": "auto", "display": "block", "filter": "drop-shadow(0 0 10px rgba(255,90,170,.7))"}} /></div>
