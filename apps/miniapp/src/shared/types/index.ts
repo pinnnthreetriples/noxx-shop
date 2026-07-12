@@ -40,23 +40,3 @@ export interface Order {
   created_at: string
   items: OrderItem[]
 }
-
-export interface SupportTicket {
-  id: number
-  topic: string
-  status: string
-  created_at: string
-}
-
-export interface SupportMessage {
-  id: number
-  sender_type: string
-  text?: string
-  file_url?: string
-  file_type?: string
-  created_at: string
-}
-
-export interface SupportTicketDetail extends SupportTicket {
-  messages: SupportMessage[]
-}

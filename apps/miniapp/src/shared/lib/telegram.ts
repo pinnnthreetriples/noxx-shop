@@ -45,10 +45,6 @@ export function getTelegram(): TelegramWebApp | undefined {
   return (window as unknown as { Telegram?: { WebApp?: TelegramWebApp } }).Telegram?.WebApp
 }
 
-export function isInTelegram(): boolean {
-  return Boolean(getTelegram()?.initData)
-}
-
 /** Map Telegram themeParams (snake_case) onto our --tg-theme-* CSS variables. */
 export function applyTelegramTheme(): 'light' | 'dark' {
   const tg = getTelegram()
@@ -91,15 +87,4 @@ export function initTelegram(): () => void {
     tg.offEvent('themeChanged', onThemeChanged)
     tg.offEvent('viewportChanged', applyViewport)
   }
-}
-
-export type HapticStyle = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'
-
-/** Fire a haptic impact, safely no-op outside Telegram. */
-export function haptic(style: HapticStyle = 'light'): void {
-  getTelegram()?.HapticFeedback?.impactOccurred(style)
-}
-
-export function hapticNotify(type: 'error' | 'success' | 'warning'): void {
-  getTelegram()?.HapticFeedback?.notificationOccurred(type)
 }

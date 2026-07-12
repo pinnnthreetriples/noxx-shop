@@ -43,7 +43,7 @@ async def admin_login(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=AdminMeResponse)
 async def admin_me(admin: Admin = Depends(get_current_admin)):
-    service = AdminAuthService(None)  # db not needed for me
+    service = AdminAuthService(None)  # ty: ignore[invalid-argument-type] — 'me' verifies JWT only, no DB
     return await service.me(admin)
 
 

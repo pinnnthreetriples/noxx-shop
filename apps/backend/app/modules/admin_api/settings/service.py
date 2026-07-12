@@ -49,7 +49,7 @@ class SettingsAdminService:
     def _with_rate(setting: Setting) -> Setting:
         # expose the built-in fallback rate (a constant, not a DB column) so the
         # admin form can preview USD prices even in "standard" mode
-        setting.star_usd_rate = config.star_usd_rate
+        setting.star_usd_rate = config.star_usd_rate  # ty: ignore[unresolved-attribute] — deliberately dynamic, not a DB column
         return setting
 
     async def get(self) -> Setting:

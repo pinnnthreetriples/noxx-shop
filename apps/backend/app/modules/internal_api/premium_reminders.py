@@ -40,6 +40,8 @@ def _needs_reminder(user: User) -> bool:
     """Not yet reminded for the CURRENT period. A sent_at older than the start
     of the reminder window belongs to a previous period (user renewed since)."""
     sent = user.premium_reminder_sent_at
+    if user.premium_until is None:
+        return False
     return sent is None or sent < user.premium_until - timedelta(days=REMINDER_DAYS)
 
 
@@ -70,12 +72,15 @@ async def pop_premium_reminders(db: AsyncSession = Depends(get_db)):
     webapp = settings.telegram_webapp_url.rstrip("/")
     reminders = []
     for u in due:
+        premium_until = u.premium_until
+        if premium_until is None:
+            continue
         lang = (u.selected_language or u.language_code or "en").lower()
         text = _REMINDER_TEXT.get(lang) or _REMINDER_TEXT.get(lang[:2], _REMINDER_TEXT["en"])
         label = _RENEW.get(lang) or _RENEW.get(lang[:2], _RENEW["en"])
         reminders.append({
             "user_telegram_id": u.telegram_id,
-            "message_text": text.format(date=u.premium_until.strftime("%d.%m.%Y")),
+            "message_text": text.format(date=premium_until.strftime("%d.%m.%Y")),
             "button": {"text": label, "url": f"{webapp}/subscription"} if webapp else None,
         })
         u.premium_reminder_sent_at = now

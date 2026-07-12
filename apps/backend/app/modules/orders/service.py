@@ -362,7 +362,7 @@ class OrderService:
         if not order:
             return None
         coins = [CoinOut(**c) for c in ORBCHAIN_COINS]
-        base = dict(order_id=order_id, amount_usd=await self._amount_usd(order.paid_stars), coins=coins)
+        base: dict[str, Any] = dict(order_id=order_id, amount_usd=await self._amount_usd(order.paid_stars), coins=coins)
         if order.status.value == "paid":
             return PaymentStateOut(status="paid", paid=True, **base)
         if not order.orbchain_track_id:
@@ -536,7 +536,7 @@ class OrderService:
 
     # ----- Internal API: payment fulfillment (moved from bot) -----
 
-    async def fulfill(
+    async def fulfill(  # noqa: C901 — race-safe payment hotspot, deliberately kept inline
         self,
         invoice_payload: str,
         telegram_payment_charge_id: str,
@@ -694,6 +694,8 @@ class OrderService:
         await self.order_repo.set_status_paid(order.id)
         await self.product_repo.bulk_increment_purchases([(product.id, 1)])
         order = await self.order_repo.get_by_id(order.id)  # reload with items eager
+        if order is None:  # unreachable — just created and committed above
+            raise RuntimeError("order not found after creation")
         await self.delivery_log_repo.bulk_create_for_order(order, delivery_method="premium")
         await self.db.commit()
         await self._enqueue_delivery(order.id)

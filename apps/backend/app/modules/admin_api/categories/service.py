@@ -34,7 +34,7 @@ class CategoryAdminService:
             data[f"title_{tr.language_code}"] = tr.title
         return data
     
-    async def create(self, admin, payload: dict) -> Category:
+    async def create(self, admin, payload: dict) -> dict:
         cat = await self.repo.create(
             slug=payload.get("slug", ""),
             status=payload.get("status", "published"),
@@ -47,7 +47,7 @@ class CategoryAdminService:
         await self.db.refresh(cat)
         return await self._serialize(cat)
     
-    async def update(self, admin, id: int, payload: dict) -> Optional[Category]:
+    async def update(self, admin, id: int, payload: dict) -> Optional[dict]:
         cat = await self.repo.get_by_id(id)
         if not cat:
             return None

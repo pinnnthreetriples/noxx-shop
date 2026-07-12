@@ -128,7 +128,7 @@ class ProductAdminService:
             admin, title="New product", body=None, product_id=product.id,
         )
 
-    async def create(self, admin, payload: dict) -> Product:
+    async def create(self, admin, payload: dict) -> dict:
         await self._apply_pricing_rules(payload)
         _normalize_tg_message_id(payload)
         payload["slug"] = await self._resolve_slug(payload, None)
@@ -163,7 +163,7 @@ class ProductAdminService:
             await self._notify_new_product(admin, product)
         return await self._serialize(product)
 
-    async def update(self, admin, id: int, payload: dict) -> Optional[Product]:
+    async def update(self, admin, id: int, payload: dict) -> Optional[dict]:
         product = await self.repo.get_by_id(id)
         if not product:
             return None

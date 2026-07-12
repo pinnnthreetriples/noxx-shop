@@ -3,9 +3,12 @@ lint.select = [
   "F",              # pyflakes (unused imports, undefined names)
   "B",              # bugbear (likely bugs)
   "S",              # bandit security rules
+  "C901",           # mccabe cyclomatic complexity
 ]
 # B008: `Depends(...)` in argument defaults is the core FastAPI idiom
 lint.ignore = ["B008"]
+
+lint.mccabe.max-complexity = 10
 
 [lint.per-file-ignores]
 # SQLAlchemy string forward-references in Mapped["..."] are resolved at runtime

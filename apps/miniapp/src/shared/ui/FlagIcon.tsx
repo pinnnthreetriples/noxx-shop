@@ -72,9 +72,6 @@ export function FlagIcon({ code, size = 23, style = {} }: FlagIconProps) {
   );
 }
 
-/** Language codes with a flag, in picker order. */
-export const FLAG_CODES = Object.keys(FLAGS);
-
 /** Returns just the flag <svg> (fills its container) for embedding in an
  *  existing chip wrapper. Returns null for unknown codes. */
 // eslint-disable-next-line react-refresh/only-export-components -- helper export alongside the vendored component; HMR hint only

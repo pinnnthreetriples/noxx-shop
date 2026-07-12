@@ -17,7 +17,7 @@ class FavoriteRepository:
             .where(Favorite.user_id == user_id)
             .order_by(desc(Favorite.created_at))
         )
-        return list(result.all())
+        return [(fav, product) for fav, product in result.all()]
 
     async def add(self, user_id: int, product_id: int) -> Favorite:
         result = await self.db.execute(

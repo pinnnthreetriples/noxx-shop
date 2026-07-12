@@ -8,6 +8,7 @@ from app.core.ratelimit import too_many_attempts
 from app.auth import get_current_user
 from app.modules.support.schemas import SupportTicketIn, SupportTicketOut, SupportTicketDetail, SupportMessageIn, SupportMessageOut
 from app.models import SupportTicket, SupportMessage
+from app.modules.support.models import TicketStatus
 
 router = APIRouter(prefix="")
 
@@ -66,7 +67,7 @@ async def add_support_message(ticket_id: int, body: SupportMessageIn, user=Depen
         text=body.text, file_url=body.file_url, file_type=body.file_type,
     )
     db.add(msg)
-    ticket.status = "open"
+    ticket.status = TicketStatus.open
     await db.commit()
     await db.refresh(msg)
     return SupportMessageOut(
