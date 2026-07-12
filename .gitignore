@@ -22,3 +22,6 @@ __pycache__/
 # Scratch / session artifacts
 _*.sh
 apps/miniapp/.noxx-backup/
+
+# Локальный дев-хелпер (у каждого свой), в репозитории не нужен
+dev-tg.ps1
