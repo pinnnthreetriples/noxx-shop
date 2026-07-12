@@ -85,9 +85,10 @@ def _close(a: datetime, b: datetime, seconds: int = 5) -> bool:
 
 
 async def test_checkout_prices_fall_back_to_defaults(svc, db_session):
-    await _reset_settings(db_session)  # no Setting row -> hardcoded defaults
+    await _reset_settings(db_session)  # no Setting row -> hardcoded USD defaults
     user = await _make_user(db_session, 8880001)
-    for plan, stars in {"week": 99, "month": 299, "year": 2499}.items():
+    # USD default / rate 0.02: $5.98 -> 299, $49.98 -> 2499 Stars
+    for plan, stars in {"month": 299, "year": 2499}.items():
         out = await svc.create_subscription_checkout(user, plan)
         order = await db_session.get(Order, out.order_id)
         assert order.paid_stars == stars
@@ -98,7 +99,7 @@ async def test_checkout_prices_fall_back_to_defaults(svc, db_session):
 
 
 async def test_checkout_price_comes_from_settings(svc, db_session):
-    await _reset_settings(db_session, sub_price_month_stars=555)
+    await _reset_settings(db_session, sub_price_month_usd=11.10)  # / 0.02 -> 555
     user = await _make_user(db_session, 8880002)
     out = await svc.create_subscription_checkout(user, "month")
     assert (await db_session.get(Order, out.order_id)).paid_stars == 555
@@ -125,8 +126,8 @@ async def test_checkout_reuses_pending_order_for_same_plan(svc, db_session):
 async def test_checkout_price_change_makes_new_order(svc, db_session):
     await _reset_settings(db_session)
     user = await _make_user(db_session, 8880004)
-    first = await svc.create_subscription_checkout(user, "month")  # 299
-    await _reset_settings(db_session, sub_price_month_stars=599)
+    first = await svc.create_subscription_checkout(user, "month")  # $5.98 -> 299
+    await _reset_settings(db_session, sub_price_month_usd=11.98)  # -> 599
     second = await svc.create_subscription_checkout(user, "month")
     assert second.order_id != first.order_id
 
@@ -137,14 +138,14 @@ async def test_checkout_price_change_makes_new_order(svc, db_session):
 async def test_fulfill_first_subscription_sets_premium(svc, db_session):
     await _reset_settings(db_session)
     user = await _make_user(db_session, 8880005)
-    out = await svc.create_subscription_checkout(user, "week")
+    out = await svc.create_subscription_checkout(user, "month")
     before = datetime.now(timezone.utc)
 
     res = await _fulfill(svc, out.order_id, "orb:sub-first")
 
     assert res["ok"] is True
     assert "Premium activated" in res["message_text"]
-    assert _close(user.premium_until, before + timedelta(days=7))
+    assert _close(user.premium_until, before + timedelta(days=30))
     order = await db_session.get(Order, out.order_id)
     await db_session.refresh(order)  # set_status_paid is a Core UPDATE; ORM copy is stale
     assert order.status == OrderStatus.paid
@@ -186,7 +187,7 @@ async def test_fulfill_restarts_expired_premium_from_now(svc, db_session):
 async def test_fulfill_idempotent_for_same_charge_id(svc, db_session):
     await _reset_settings(db_session)
     user = await _make_user(db_session, 8880008)
-    out = await svc.create_subscription_checkout(user, "week")
+    out = await svc.create_subscription_checkout(user, "month")
 
     first = await _fulfill(svc, out.order_id, "orb:test1")
     until_after_first = user.premium_until
@@ -201,11 +202,12 @@ async def test_fulfill_idempotent_for_same_charge_id(svc, db_session):
 async def test_fulfill_race_loser_returns_winner_result(svc, db_session):
     await _reset_settings(db_session)
     user = await _make_user(db_session, 8880009)
-    out = await svc.create_subscription_checkout(user, "week")
+    out = await svc.create_subscription_checkout(user, "month")
 
     winner = await _fulfill(svc, out.order_id, "orb:winner")
     until_after_winner = user.premium_until
-    # different charge id, but the order is already paid -> loser branch
+    # different charge id, but the order is already paid AND it's a crypto
+    # ("orb:") charge -> race loser, not a Telegram auto-renewal
     loser = await _fulfill(svc, out.order_id, "orb:loser")
 
     assert winner["ok"] is True
@@ -213,6 +215,31 @@ async def test_fulfill_race_loser_returns_winner_result(svc, db_session):
     assert loser["order_id"] == out.order_id
     assert user.premium_until == until_after_winner  # no double extension
     assert len(await _payments(db_session, out.order_id)) == 1  # no second Payment
+
+
+async def test_telegram_star_subscription_renews(svc, db_session):
+    """A native monthly Star subscription re-fires successful_payment every
+    period: same order payload, a new (non-"orb:") charge id. Each renewal
+    extends premium by another 30 days. The order↔payment schema is 1:1, so the
+    single payment row tracks the latest charge (the one a refund would target)."""
+    await _reset_settings(db_session)
+    user = await _make_user(db_session, 8880014)
+    out = await svc.create_subscription_checkout(user, "month")
+
+    first = await _fulfill(svc, out.order_id, "tg-charge-1")
+    until_after_first = user.premium_until
+    # Persist the aware value the way Postgres would return it, so the renewal's
+    # re-read doesn't hit SQLite's tz-dropping (see _seed_premium's docstring).
+    await _seed_premium(db_session, user.id, until_after_first)
+    renewal = await _fulfill(svc, out.order_id, "tg-charge-2")
+    # a duplicate webhook for the same renewal charge must not extend twice
+    dup = await _fulfill(svc, out.order_id, "tg-charge-2")
+
+    assert first["ok"] is True and renewal["ok"] is True and dup["ok"] is True
+    assert _close(user.premium_until, until_after_first + timedelta(days=30))
+    payments = await _payments(db_session, out.order_id)
+    assert len(payments) == 1  # 1:1 schema — updated in place, not appended
+    assert payments[0].telegram_payment_charge_id == "tg-charge-2"  # latest charge
 
 
 # ----- Fulfillment: underpayment guard -----

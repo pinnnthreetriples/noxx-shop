@@ -21,9 +21,8 @@ class SettingsUpdate(BaseModel):
     discount_bulk_min_items: Optional[int] = None
     discount_loyalty_percent: Optional[int] = None
     discount_loyalty_min_items: Optional[int] = None
-    sub_price_week_stars: Optional[int] = None
-    sub_price_month_stars: Optional[int] = None
-    sub_price_year_stars: Optional[int] = None
+    sub_price_month_usd: Optional[float] = None
+    sub_price_year_usd: Optional[float] = None
 
 
 class SettingsOut(BaseModel):
@@ -46,9 +45,8 @@ class SettingsOut(BaseModel):
     discount_bulk_min_items: int = 20
     discount_loyalty_percent: int = 30
     discount_loyalty_min_items: int = 20
-    sub_price_week_stars: int = 99
-    sub_price_month_stars: int = 299
-    sub_price_year_stars: int = 2499
+    sub_price_month_usd: float = 5.98
+    sub_price_year_usd: float = 49.98
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)

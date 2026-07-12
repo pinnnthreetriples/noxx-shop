@@ -73,10 +73,11 @@ class Setting(Base):
     # Compensate Telegram's ~35% withdrawal cut by grossing up buyer-facing prices
     withdrawal_commission_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     withdrawal_commission_percent: Mapped[int] = mapped_column(Integer, default=35)
-    # Premium subscription prices in Stars (durations are fixed: 7/30/365 days)
-    sub_price_week_stars: Mapped[int] = mapped_column(Integer, default=99)
-    sub_price_month_stars: Mapped[int] = mapped_column(Integer, default=299)
-    sub_price_year_stars: Mapped[int] = mapped_column(Integer, default=2499)
+    # Premium subscription prices in USD — the source of truth. Stars are derived
+    # from the live rate at checkout (durations are fixed: 30/365 days). The old
+    # sub_price_*_stars columns stay in prod as harmless orphans; no drop migration.
+    sub_price_month_usd: Mapped[float] = mapped_column(Numeric(10, 2), default=5.98)
+    sub_price_year_usd: Mapped[float] = mapped_column(Numeric(10, 2), default=49.98)
     # ponytail: legacy, unused — the OrbChain webhook secret now lives only in env
     # (ORBCHAIN_WEBHOOK_SECRET). Column kept so the model matches the prod DB;
     # dropping it needs a migration and isn't worth one.

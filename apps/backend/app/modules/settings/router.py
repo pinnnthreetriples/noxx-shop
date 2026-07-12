@@ -30,15 +30,16 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
         await db.commit()
         await db.refresh(setting)
     out = SettingsOut.model_validate(setting)
-    out.star_usd_rate = effective_star_rate(
+    rate = effective_star_rate(
         setting.stars_to_usd_mode, setting.manual_stars_to_usd_rate, config.star_usd_rate
     )
-    if setting.withdrawal_commission_enabled:
-        # buyer-facing subscription prices carry the same commission gross-up as products
-        pct = setting.withdrawal_commission_percent
-        out.sub_price_week_stars = gross_stars(out.sub_price_week_stars, True, pct)
-        out.sub_price_month_stars = gross_stars(out.sub_price_month_stars, True, pct)
-        out.sub_price_year_stars = gross_stars(out.sub_price_year_stars, True, pct)
+    out.star_usd_rate = rate
+    # USD is the source of truth; derive the buyer-facing Stars price at the live
+    # rate, then apply the same withdrawal-commission gross-up as products.
+    enabled = setting.withdrawal_commission_enabled
+    pct = setting.withdrawal_commission_percent
+    out.sub_price_month_stars = gross_stars(round(float(setting.sub_price_month_usd) / rate), enabled, pct)
+    out.sub_price_year_stars = gross_stars(round(float(setting.sub_price_year_usd) / rate), enabled, pct)
     return out
 
 

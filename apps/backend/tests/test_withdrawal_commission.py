@@ -73,9 +73,12 @@ async def test_subscription_checkout_charges_grossed(db_session):
     from app.modules.orders.models import Order
     await _set_commission(db_session, True, 35)
     s = await db_session.get(Setting, 1)
-    s.sub_price_week_stars = 99
+    # pin the rate so the USD→Stars derivation is deterministic: $1.98 → 99 base
+    s.stars_to_usd_mode = "manual"
+    s.manual_stars_to_usd_rate = 0.02
+    s.sub_price_month_usd = 1.98
     await db_session.commit()
-    out = await OrderService(db_session).create_subscription_checkout(USER, "week")
+    out = await OrderService(db_session).create_subscription_checkout(USER, "month")
     order = await db_session.get(Order, out.order_id)
     assert order.paid_stars == 152  # 99 / 0.65, buyer covers the commission
 

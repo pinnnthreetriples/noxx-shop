@@ -174,7 +174,8 @@ export function useNoxx() {
       discount_bulk_percent?: number
       discount_bulk_min_items?: number
       discount_loyalty_percent?: number
-      sub_price_week_stars?: number
+      sub_price_month_usd?: number
+      sub_price_year_usd?: number
       sub_price_month_stars?: number
       sub_price_year_stars?: number
       // per-language legal texts: terms_text_${lang} / refund_policy_text_${lang}
@@ -526,17 +527,19 @@ export function useNoxx() {
 
   // Plan prices come from admin Settings (fallbacks mirror the backend defaults);
   // the yearly badge shows the real saving vs 12 months.
-  const weekStars = settingsQ.data?.sub_price_week_stars ?? 99
+  // USD is the source of truth; Stars come derived from the backend for the
+  // Stars-pay display. Monthly auto-renews (native Telegram Star subscription);
+  // yearly and crypto payments are one-time.
+  const monthUsd = settingsQ.data?.sub_price_month_usd ?? 5.98
+  const yearUsd = settingsQ.data?.sub_price_year_usd ?? 49.98
   const monthStars = settingsQ.data?.sub_price_month_stars ?? 299
   const yearStars = settingsQ.data?.sub_price_year_stars ?? 2499
-  const yearSavePct = Math.round((1 - yearStars / (monthStars * 12)) * 100)
-  // Prepaid periods, no auto-renewal — the copy must not promise recurring billing.
+  const yearSavePct = Math.round((1 - yearUsd / (monthUsd * 12)) * 100)
   const subPlans = [
-    { code: 'week', name: 'Weekly', sub: '7 days access', stars: weekStars, tag: '' },
-    { code: 'month', name: 'Monthly', sub: '30 days access', stars: monthStars, tag: '' },
-    { code: 'year', name: 'Yearly', sub: '365 days access', stars: yearStars, tag: yearSavePct > 0 ? `BEST VALUE · ${yearSavePct}%` : '' },
+    { code: 'month', name: 'Monthly', sub: 'Auto-renews monthly', usd: monthUsd, stars: monthStars, tag: '' },
+    { code: 'year', name: 'Yearly', sub: '365 days access', usd: yearUsd, stars: yearStars, tag: yearSavePct > 0 ? `BEST VALUE · ${yearSavePct}%` : '' },
   ].map((pp) => {
-    const p = { ...pp, priceFmt: String(pp.stars), usdFmt: fmtUsd(pp.stars * starRate) }
+    const p = { ...pp, priceFmt: String(pp.stars), usdFmt: fmtUsd(pp.usd) }
     const selected = selectedPlan === p.code
     return {
       ...p, selected,

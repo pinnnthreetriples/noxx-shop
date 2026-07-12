@@ -226,6 +226,21 @@ class PaymentRepository:
         )
         return result.scalars().first()
 
+    async def update_charge(
+        self, order_id: int, telegram_payment_charge_id: str, provider_payment_charge_id: str, stars_amount: int
+    ) -> Optional[Payment]:
+        """Point the order's single payment row at a new charge (a subscription
+        renewal). The order↔payment schema is 1:1, so we track the latest charge
+        rather than appending — that's the one a refund would target."""
+        result = await self.db.execute(select(Payment).where(Payment.order_id == order_id))
+        payment = result.scalars().first()
+        if payment:
+            payment.telegram_payment_charge_id = telegram_payment_charge_id
+            payment.provider_payment_charge_id = provider_payment_charge_id
+            payment.stars_amount = stars_amount
+            await self.db.flush()
+        return payment
+
 
 class LinkDeliveryLogRepository:
     def __init__(self, db: AsyncSession):

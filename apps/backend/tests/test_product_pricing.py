@@ -109,7 +109,7 @@ def test_settings_pricing_bounds():
         {"max_discount_percent": -10},
         {"withdrawal_commission_percent": 101},
         {"stars_to_usd_mode": "х-мode"},
-        {"sub_price_week_stars": 0},
+        {"sub_price_month_usd": 0},
         {"discount_bulk_min_items": 0},
     ):
         with pytest.raises(ValueError):
