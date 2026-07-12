@@ -8,6 +8,7 @@ from app.auth import get_current_user
 from app.modules.catalog.schemas import ProductListItem, FavoriteToggleOut
 from app.models import Favorite, Product
 from app.modules.catalog.service import _EAGER, _to_list_item, resolve_language
+from app.modules.pricing import load_commission
 
 router = APIRouter(prefix="")
 
@@ -23,7 +24,8 @@ async def list_favorites(user=Depends(get_current_user), db: AsyncSession = Depe
         .order_by(desc(Favorite.created_at))
     )
     products = result.scalars().all()
-    return [_to_list_item(p, lang) for p in products]
+    commission = await load_commission(db)
+    return [_to_list_item(p, lang, commission) for p in products]
 
 
 @router.post("/favorites/{product_id}", response_model=FavoriteToggleOut)

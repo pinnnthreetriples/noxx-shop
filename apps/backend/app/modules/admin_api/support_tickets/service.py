@@ -68,6 +68,8 @@ class SupportTicketAdminService:
         # collection with the new admin reply included.
         self.db.expunge_all()
         ticket = await self.repo.get_by_id(id)
+        if ticket is None:  # unreachable — replied to an existing ticket above
+            raise RuntimeError("ticket not found after reply")
         result = self._serialize(ticket)
         result["delivered"] = delivered
         return result
