@@ -242,6 +242,28 @@ async def test_telegram_star_subscription_renews(svc, db_session):
     assert payments[0].telegram_payment_charge_id == "tg-charge-2"  # latest charge
 
 
+async def test_renewal_concurrent_duplicate_extends_once(svc, db_session):
+    """Two duplicate renewal webhooks for the SAME new charge that both slip past
+    the upstream charge-id dedup (the concurrent race the atomic set_status_paid
+    gate covers for first payments) must still extend premium only once. Calling
+    _fulfill_subscription_renewal twice reproduces both racers past that check."""
+    await _reset_settings(db_session)
+    user = await _make_user(db_session, 8880015)
+    out = await svc.create_subscription_checkout(user, "month")
+
+    await _fulfill(svc, out.order_id, "tg-charge-1")
+    until_after_first = user.premium_until
+    await _seed_premium(db_session, user.id, until_after_first)
+
+    order = await db_session.get(Order, out.order_id)
+    await svc._fulfill_subscription_renewal(order, "tg-renew", "tg-renew", 0)
+    await _seed_premium(db_session, user.id, user.premium_until)
+    await svc._fulfill_subscription_renewal(order, "tg-renew", "tg-renew", 0)
+
+    assert _close(user.premium_until, until_after_first + timedelta(days=30))
+    assert len(await _payments(db_session, out.order_id)) == 1
+
+
 # ----- Fulfillment: underpayment guard -----
 
 

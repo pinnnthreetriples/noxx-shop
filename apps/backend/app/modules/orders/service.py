@@ -292,13 +292,15 @@ class OrderService:
     ) -> Dict[str, Any]:
         """A native Telegram Star subscription auto-renewed: the order is already
         paid, so skip the status flip — point its (single, 1:1) payment row at the
-        new charge and extend premium by another period. A duplicate webhook for
-        the same renewal charge is caught upstream by the charge-id idempotency check."""
-        await self.payment_repo.update_charge(
+        new charge and extend premium by another period. update_charge is the atomic
+        concurrency gate (like set_status_paid): if it returns False the row already
+        carries this charge, so a racing duplicate renewal webhook already extended
+        premium and this one must not extend again."""
+        if await self.payment_repo.update_charge(
             order.id, telegram_payment_charge_id, provider_payment_charge_id, total_amount
-        )
-        await self._extend_premium(order.user_id, order.subscription_plan)
-        await self.db.commit()
+        ):
+            await self._extend_premium(order.user_id, order.subscription_plan)
+            await self.db.commit()
         return await self._build_delivery_result(order.id)
 
     async def _invoice_for_order(
