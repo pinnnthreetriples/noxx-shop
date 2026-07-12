@@ -49,7 +49,7 @@ class ProductAdminRepository:
         return product
     
     async def soft_delete(self, product: Product):
-        product.status = "deleted"
+        product.status = ProductStatus.deleted
     
     # Translation helpers
     async def upsert_translation(self, product_id: int, language: str, title: str, description: Optional[str]):

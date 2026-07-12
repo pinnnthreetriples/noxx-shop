@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.favorites.repository import FavoriteRepository, RecentlyViewedRepository
 from app.modules.catalog.service import _to_list_item, resolve_language
 from app.modules.catalog.schemas import ProductListItem, FavoriteToggleOut
+from app.modules.pricing import load_commission
 
 
 class FavoriteService:
@@ -16,7 +17,8 @@ class FavoriteService:
     async def list_for_user(self, user) -> List[ProductListItem]:
         rows = await self.repo.list_for_user(user.id)
         lang = resolve_language(user)
-        return [_to_list_item(p, lang) for (_fav, p) in rows]
+        commission = await load_commission(self.db)
+        return [_to_list_item(p, lang, commission) for (_fav, p) in rows]
 
     async def add(self, user, product_id: int) -> FavoriteToggleOut:
         exists = await self.repo.exists(user.id, product_id)

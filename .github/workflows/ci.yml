@@ -33,6 +33,10 @@ jobs:
       - run: ruff check .
       - run: ruff check --config ruff.toml ../bot
       - run: python -m pytest -q
+      - name: ty (static typing)
+        run: pip install ty && ty check .
+      - name: deptry (unused deps)
+        run: pip install deptry && deptry .
       - name: pip-audit (advisory)
         continue-on-error: true
         run: pip install pip-audit && pip-audit -r requirements.txt
@@ -53,6 +57,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: knip (dead files/exports/deps)
+        run: npx knip
       - name: npm audit (advisory)
         continue-on-error: true
         run: npm audit --audit-level=high
@@ -73,6 +79,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: knip (dead files/exports/deps)
+        run: npx knip
       - name: npm audit (advisory)
         continue-on-error: true
         run: npm audit --audit-level=high

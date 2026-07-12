@@ -1,0 +1,26 @@
+# Config-only file (no build-system/project table): `pip install -r requirements.txt`
+# ignores it. Present solely to configure deptry.
+[tool.deptry.per_rule_ignores]
+# DEP002: declared deps used at runtime without a direct `import`
+#   uvicorn         — ASGI server, launched via CLI
+#   asyncpg         — async driver, referenced by the SQLAlchemy URL
+#   bcrypt          — hashing backend for passlib
+#   python-multipart — form/upload parsing pulled in by FastAPI
+#   python-dotenv   — .env loading for pydantic-settings
+DEP002 = ["uvicorn", "asyncpg", "bcrypt", "python-multipart", "python-dotenv"]
+# DEP003: botocore is imported directly but only ships as a boto3 transitive dep
+DEP003 = ["botocore"]
+
+# ---- ty (static typing) ----
+[tool.ty.src]
+# Type-check shipped code only. Tests exercise HTTP clients / fixtures whose
+# "errors" are test-harness ergonomics, not production defects.
+exclude = ["tests"]
+
+[[tool.ty.overrides]]
+# SQLAlchemy declarative models use string forward-refs in Mapped["Foo"] that
+# ty can't resolve across modules — same reason ruff.toml ignores F821 here.
+include = ["**/models.py"]
+
+[tool.ty.overrides.rules]
+unresolved-reference = "ignore"

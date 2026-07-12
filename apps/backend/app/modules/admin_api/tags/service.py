@@ -33,7 +33,7 @@ class TagAdminService:
             data[f"title_{tr.language_code}"] = tr.title
         return data
     
-    async def create(self, admin, payload: dict) -> Tag:
+    async def create(self, admin, payload: dict) -> dict:
         tag = await self.repo.create(slug=payload.get("slug", ""))
         for lang in LANGUAGE_CODES:
             title = payload.get(f"title_{lang}")
@@ -43,7 +43,7 @@ class TagAdminService:
         await self.db.refresh(tag)
         return await self._serialize(tag)
     
-    async def update(self, admin, id: int, payload: dict) -> Optional[Tag]:
+    async def update(self, admin, id: int, payload: dict) -> Optional[dict]:
         tag = await self.repo.get_by_id(id)
         if not tag:
             return None
