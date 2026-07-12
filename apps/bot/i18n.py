@@ -102,7 +102,7 @@ def norm_lang(code: str | None) -> str:
     return base if base in _STRINGS else "en"
 
 
-def green_btn(label: str) -> str:
-    """Telegram can't color inline buttons, so every bot button carries a
-    green dot as the house style. Prefix here, at the single choke point."""
-    return f"🟢 {label}"
+def btn(emoji: str, label: str) -> str:
+    """Telegram can't color inline buttons, so each carries a leading emoji
+    chosen for its meaning. Prefix here, at the single choke point."""
+    return f"{emoji} {label}"
