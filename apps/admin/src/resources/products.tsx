@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
+import { useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import {
   List, Datagrid, TextField, NumberField, BooleanField, EditButton, DeleteButton,
   Edit, SimpleForm, TextInput, NumberInput, BooleanInput, SelectInput, SelectField, Create,
@@ -89,14 +89,16 @@ const captureFrame = (video: HTMLVideoElement): Promise<Blob> =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('кадр не получен'))), 'image/jpeg', 0.82)
   })
 
-// Load a local blob URL into an offscreen <video>, seek slightly past the start
-// (t=0 is often blank), and capture that frame. blob: URLs never taint canvas.
-const captureFirstFrame = (blobUrl: string): Promise<Blob> =>
+// Load a video URL into an offscreen <video>, seek slightly past the start
+// (t=0 is often blank), and capture that frame. A remote URL needs crossOrigin
+// (+ CDN CORS) to keep the canvas untainted for capture.
+const captureFirstFrame = (url: string, crossOrigin = false): Promise<Blob> =>
   new Promise((resolve, reject) => {
     const v = document.createElement('video')
     v.muted = true
     v.preload = 'auto'
-    v.src = blobUrl
+    if (crossOrigin) v.crossOrigin = 'anonymous'
+    v.src = url
     v.addEventListener('error', () => reject(new Error('видео не декодируется')))
     v.addEventListener('loadeddata', () => {
       v.currentTime = Number.isFinite(v.duration) && v.duration > 0 ? Math.min(0.1, v.duration / 2) : 0.1
@@ -191,14 +193,8 @@ const PreviewVideoInput = () => {
   const { setValue, getValues } = useFormContext()
   const notify = useNotify()
   const [busy, setBusy] = useState(false)
-  const [objUrl, setObjUrl] = useState('')
   const [corsBlocked, setCorsBlocked] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-
-  useEffect(() => {
-    if (!objUrl) return
-    return () => URL.revokeObjectURL(objUrl)
-  }, [objUrl])
 
   const setCover = async (blob: Blob) => {
     setValue('cover_url', await uploadToMedia(await shrinkImage(blob), 'cover.jpg'), { shouldDirty: true })
@@ -207,22 +203,25 @@ const PreviewVideoInput = () => {
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    const url = URL.createObjectURL(f)
     setBusy(true)
     try {
-      field.onChange(await uploadToMedia(f))
-      setObjUrl(url) // adopt the local preview only after the upload succeeded
+      // Preview + frame-capture run off the served CDN URL, not a blob: URL —
+      // the admin CSP allows media.noxxshop.com in media-src but blocks blob:,
+      // so a blob preview is silently killed by the browser ("не декодируется").
+      const uploaded = await uploadToMedia(f)
+      field.onChange(uploaded)
       notify('Видео загружено', { type: 'success' })
       if (!getValues('cover_url')) {
         try {
-          await setCover(await captureFirstFrame(url))
+          await setCover(await captureFirstFrame(mediaSrc(uploaded), true))
           notify('Обложка создана из первого кадра', { type: 'success' })
-        } catch (err) {
-          notify(`Не удалось создать обложку: ${errText(err)}`, { type: 'warning' })
+        } catch {
+          // Cover-from-frame draws the video to a canvas, which needs the CDN to
+          // allow cross-origin reads. If it doesn't, skip quietly — the video is
+          // uploaded and a cover can still be set by hand or from a played frame.
         }
       }
     } catch (err) {
-      URL.revokeObjectURL(url)
       notify(`Ошибка загрузки: ${errText(err)}`, { type: 'error' })
     } finally {
       setBusy(false)
@@ -244,14 +243,14 @@ const PreviewVideoInput = () => {
     }
   }
 
-  const src = objUrl || mediaSrc((field.value as string) || '')
-  const remote = !objUrl && !!src
-  const canCapture = !!objUrl || (remote && !corsBlocked)
+  const src = mediaSrc((field.value as string) || '')
+  const remote = !!src
+  const canCapture = remote && !corsBlocked
   return (
     <MediaCard
       label="Превью (короткое видео)" filled={!!src} busy={busy}
       accept="video/mp4,video/webm,video/quicktime"
-      onFile={onFile} onClear={() => { field.onChange(null); setObjUrl('') }}
+      onFile={onFile} onClear={() => field.onChange(null)}
       emptyIcon={<VideocamOutlinedIcon />} emptyText="Загрузить видео"
       preview={
         <>
