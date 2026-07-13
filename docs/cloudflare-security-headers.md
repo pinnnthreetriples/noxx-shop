@@ -72,7 +72,7 @@ origin-set security headers, so it's safe to set `Referrer-Policy` at Cloudflare
 **CSP policy for the react-admin + Material UI SPA** (now **enforcing** — see status note below):
 
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://media.noxxshop.com; media-src 'self' blob: https://media.noxxshop.com; font-src 'self' data:; connect-src 'self' https://api.noxxshop.com https://*.ingest.de.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.noxxshop.com; media-src 'self' https://media.noxxshop.com; font-src 'self' data:; connect-src 'self' https://api.noxxshop.com https://*.ingest.de.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
 Notes on the directives:
@@ -89,14 +89,16 @@ Notes on the directives:
   `media-src` falls back to `default-src 'self'` and the video preview is silently blocked (image
   still shows, since that's covered by `img-src`). This was missed in the first enforcing flip and
   added after the admin video preview broke — keep it.
-- `blob:` in **both** `img-src` and `media-src` is **required** for uploading a NEW video: the editor
-  previews the freshly-picked file from an object URL (`URL.createObjectURL(file)` →
-  `blob:https://admin.noxxshop.com/…`) and grabs the first frame for the cover off that same
-  `<video>` (`apps/admin/src/resources/products.tsx`, `captureFirstFrame` / `shrinkImage`). The
-  enforcing flip (2026-07-10) only got verified against a *saved* product's remote video, so the
-  blob path was never exercised — every upload then failed with "видео не декодируется" (the browser
-  blocked the `blob:` `<video>`). Added 2026-07-14. `blob:` URLs are same-origin and page-created;
-  they can't load external content, so this doesn't meaningfully loosen the policy — keep it.
+- **No `blob:` is needed** here, on purpose. The enforcing flip (2026-07-10) broke NEW video
+  uploads: the editor used to preview the freshly-picked file from an object URL
+  (`URL.createObjectURL(file)` → `blob:…`) and capture its cover frame off that `<video>`, and
+  `blob:` isn't in `media-src` → every upload failed with "видео не декодируется". Rather than
+  loosen the CSP, the admin was changed (2026-07-14, `apps/admin/src/resources/products.tsx`) to
+  preview and frame-capture from the **served CDN URL** — already covered by
+  `media-src https://media.noxxshop.com`. So keep `media-src`/`img-src` as-is; do **not** add
+  `blob:`. Cover-from-frame draws the video to a canvas and additionally needs the CDN to allow
+  cross-origin reads (CORS, `apps/backend/scripts/set_r2_cors.py`); without it the app skips the
+  auto-cover quietly and the video still uploads.
 - `frame-ancestors 'none'` is intentionally stricter than `X-Frame-Options: DENY` needs to be —
   keep both; older browsers only understand `X-Frame-Options`.
 
