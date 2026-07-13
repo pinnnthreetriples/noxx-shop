@@ -20,8 +20,9 @@ _PERCENT_FIELDS = (
 )
 _MIN1_FIELDS = (
     "discount_bulk_min_items", "discount_loyalty_min_items",
-    "sub_price_week_stars", "sub_price_month_stars", "sub_price_year_stars",
 )
+# Subscription prices are in USD now; keep them above OrbChain's $0.50 invoice floor.
+_MIN_USD_FIELDS = ("sub_price_month_usd", "sub_price_year_usd")
 
 
 def _validate_pricing_bounds(payload: dict) -> None:
@@ -38,6 +39,10 @@ def _validate_pricing_bounds(payload: dict) -> None:
         v = payload.get(f)
         if v is not None and int(v) < 1:
             raise ValueError(f"{f}: минимум 1")
+    for f in _MIN_USD_FIELDS:
+        v = payload.get(f)
+        if v is not None and float(v) < 0.5:
+            raise ValueError(f"{f}: минимум $0.50")
 
 
 class SettingsAdminService:

@@ -37,19 +37,22 @@ const rateOf = (fd: Record<string, unknown>): number => {
   return Number(fd.star_usd_rate) || 0
 }
 
-const UsdHint = ({ fd, source }: { fd: Record<string, unknown>; source: string }) => {
+// Subscription prices are set in USD (the source of truth); show the Stars the
+// buyer will actually be charged, derived at the live rate + the same
+// withdrawal-commission gross-up the backend applies.
+const StarsHint = ({ fd, source }: { fd: Record<string, unknown>; source: string }) => {
   const rate = rateOf(fd)
-  const stars = Number(fd[source])
-  if (!rate || !stars) return null
-  // same gross-up as the backend applies to buyer-facing subscription prices
+  const usd = Number(fd[source])
+  if (!rate || !usd) return null
+  const net = Math.round(usd / rate)
   const pct = Number(fd.withdrawal_commission_percent) || 0
   const gross = fd.withdrawal_commission_enabled && pct > 0
-    ? Math.round(stars / (1 - Math.min(pct, 95) / 100))
-    : stars
+    ? Math.round(net / (1 - Math.min(pct, 95) / 100))
+    : net
   return (
     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -1, mb: 2 }}>
-      ≈ ${(stars * rate).toFixed(2)}
-      {gross !== stars ? ` · покупатель заплатит ${gross}⭐ (≈ $${(gross * rate).toFixed(2)})` : ''}
+      покупатель заплатит {gross}⭐
+      {gross !== net ? ` (база ${net}⭐)` : ''}
     </Typography>
   )
 }
@@ -160,17 +163,13 @@ const SettingsPage = () => (
             ) : null
           }
         </FormDataConsumer>
-        <NumberInput source="sub_price_week_stars" label="Подписка: неделя (Stars)" min={1} validate={[minValue(1)]} />
+        <NumberInput source="sub_price_month_usd" label="Подписка: месяц ($, автопродление)" min={0.5} step={0.01} validate={[minValue(0.5)]} />
         <FormDataConsumer>
-          {({ formData }) => <UsdHint fd={formData} source="sub_price_week_stars" />}
+          {({ formData }) => <StarsHint fd={formData} source="sub_price_month_usd" />}
         </FormDataConsumer>
-        <NumberInput source="sub_price_month_stars" label="Подписка: месяц (Stars)" min={1} validate={[minValue(1)]} />
+        <NumberInput source="sub_price_year_usd" label="Подписка: год ($)" min={0.5} step={0.01} validate={[minValue(0.5)]} />
         <FormDataConsumer>
-          {({ formData }) => <UsdHint fd={formData} source="sub_price_month_stars" />}
-        </FormDataConsumer>
-        <NumberInput source="sub_price_year_stars" label="Подписка: год (Stars)" min={1} validate={[minValue(1)]} />
-        <FormDataConsumer>
-          {({ formData }) => <UsdHint fd={formData} source="sub_price_year_stars" />}
+          {({ formData }) => <StarsHint fd={formData} source="sub_price_year_usd" />}
         </FormDataConsumer>
       </FormTab>
 

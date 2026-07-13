@@ -69,6 +69,14 @@ async def _add_missing_columns(conn):
     await conn.exec_driver_sql(
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_reminder_sent_at TIMESTAMPTZ"
     )
+    # Subscription prices moved to USD as the source of truth (also in alembic
+    # migration a1b2c3d4e5f6). Stars are derived from the live rate at checkout.
+    await conn.exec_driver_sql(
+        "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sub_price_month_usd NUMERIC(10,2) NOT NULL DEFAULT 5.98"
+    )
+    await conn.exec_driver_sql(
+        "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sub_price_year_usd NUMERIC(10,2) NOT NULL DEFAULT 49.98"
+    )
 
 
 @asynccontextmanager

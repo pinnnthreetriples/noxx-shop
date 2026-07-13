@@ -226,6 +226,29 @@ class PaymentRepository:
         )
         return result.scalars().first()
 
+    async def update_charge(
+        self, order_id: int, telegram_payment_charge_id: str, provider_payment_charge_id: str, stars_amount: int
+    ) -> bool:
+        """Point the order's single payment row at a NEW charge (a subscription
+        renewal). The order↔payment schema is 1:1, so we track the latest charge
+        rather than appending — that's the one a refund would target. Gated on the
+        charge id actually changing (atomic conditional UPDATE, like set_status_paid)
+        so two racing duplicate renewal webhooks extend premium exactly once; returns
+        False when the row already carries this charge id."""
+        result = await self.db.execute(
+            update(Payment)
+            .where(
+                Payment.order_id == order_id,
+                Payment.telegram_payment_charge_id != telegram_payment_charge_id,
+            )
+            .values(
+                telegram_payment_charge_id=telegram_payment_charge_id,
+                provider_payment_charge_id=provider_payment_charge_id,
+                stars_amount=stars_amount,
+            )
+        )
+        return bool(result.rowcount)
+
 
 class LinkDeliveryLogRepository:
     def __init__(self, db: AsyncSession):

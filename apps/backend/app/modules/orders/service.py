@@ -57,11 +57,15 @@ _MY_PURCHASES = {
 class OrderService:
     """Use-case service for orders and payments."""
 
-    # Premium subscription plans. Prepaid periods, no auto-renewal.
-    # Durations are fixed; prices in Stars come from admin Settings
-    # (sub_price_*_stars), these are the fallbacks. Mirrored in the miniapp.
-    SUB_DAYS = {"week": 7, "month": 30, "year": 365}
-    SUB_PRICE_DEFAULTS = {"week": 99, "month": 299, "year": 2499}
+    # Premium subscription plans. USD is the source of truth (admin Settings
+    # sub_price_*_usd); Stars are derived at the live rate on checkout. Monthly
+    # is a real auto-renewing Telegram Star subscription when paid with Stars;
+    # yearly and every crypto payment are one-time prepaid. Durations fixed.
+    # Fallback USD prices mirror the Setting model defaults; the miniapp mirrors these.
+    SUB_DAYS = {"month": 30, "year": 365}
+    SUB_PRICE_USD_DEFAULTS = {"month": 5.98, "year": 49.98}
+    # Telegram Star subscriptions accept only a 30-day period (2592000 seconds).
+    TELEGRAM_SUB_PERIOD_SEC = 30 * 24 * 3600
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -241,17 +245,22 @@ class OrderService:
         if plan not in self.SUB_DAYS:
             raise ValueError("Unknown plan")
         s = await self._settings_row()
-        stars = (getattr(s, f"sub_price_{plan}_stars", None) if s else None) or self.SUB_PRICE_DEFAULTS[plan]
-        if stars <= 0:
-            raise ValueError("Subscription price is not configured")
+        usd = float((s and getattr(s, f"sub_price_{plan}_usd", None)) or self.SUB_PRICE_USD_DEFAULTS[plan])
+        # USD is the base price; derive Stars at the live rate for the charge.
+        stars = round(usd / await self._star_rate())
         # same withdrawal-commission gross-up as products, so the buyer covers it
         if s and s.withdrawal_commission_enabled:
             stars = gross_stars(stars, True, s.withdrawal_commission_percent)
+        if stars <= 0:
+            raise ValueError("Subscription price is not configured")
+        # Monthly is a native auto-renewing Telegram Star subscription; yearly and
+        # crypto stay one-time. (Crypto ignores this flag — see _create_orbchain_invoice.)
+        recurring = plan == "month"
         # Double-tap guard: re-use the newest unpaid order for this plan instead
         # of piling up pending duplicates. A price change makes a fresh order.
         pending = await self.order_repo.find_pending_subscription(user.id, plan)
         if pending and pending.paid_stars == stars:
-            return await self._invoice_for_order(pending.id, stars, provider)
+            return await self._invoice_for_order(pending.id, stars, provider, recurring=recurring)
         order = await self.order_repo.create(
             user_id=user.id,
             total_stars=stars,
@@ -264,11 +273,42 @@ class OrderService:
         order.subscription_plan = plan
         await self.db.commit()
         await self.db.refresh(order)
-        return await self._invoice_for_order(order.id, stars, provider)
+        return await self._invoice_for_order(order.id, stars, provider, recurring=recurring)
 
-    async def _invoice_for_order(self, order_id: int, to_pay: int, provider: Optional[str]) -> CheckoutOut:
+    async def _extend_premium(self, user_id: int, plan: Optional[str]):
+        """Add the plan's days to the buyer's premium_until (stack if still
+        active, restart from now if expired). Row-lock the buyer so two
+        concurrent fulfillments can't read the same value and lose an extension."""
+        days = self.SUB_DAYS.get(plan or "", 30)
+        buyer = await self.user_repo.get_by_id_for_update(user_id)
+        if buyer:
+            now = datetime.now(timezone.utc)
+            base = buyer.premium_until if buyer.premium_until and buyer.premium_until > now else now
+            buyer.premium_until = base + timedelta(days=days)
+        return buyer
+
+    async def _fulfill_subscription_renewal(
+        self, order, telegram_payment_charge_id: str, provider_payment_charge_id: str, total_amount: int
+    ) -> Dict[str, Any]:
+        """A native Telegram Star subscription auto-renewed: the order is already
+        paid, so skip the status flip — point its (single, 1:1) payment row at the
+        new charge and extend premium by another period. update_charge is the atomic
+        concurrency gate (like set_status_paid): if it returns False the row already
+        carries this charge, so a racing duplicate renewal webhook already extended
+        premium and this one must not extend again."""
+        if await self.payment_repo.update_charge(
+            order.id, telegram_payment_charge_id, provider_payment_charge_id, total_amount
+        ):
+            await self._extend_premium(order.user_id, order.subscription_plan)
+            await self.db.commit()
+        return await self._build_delivery_result(order.id)
+
+    async def _invoice_for_order(
+        self, order_id: int, to_pay: int, provider: Optional[str], recurring: bool = False
+    ) -> CheckoutOut:
         # Honor the client's payment-method choice; default (None) prefers
-        # OrbChain crypto checkout when configured, else Telegram Stars.
+        # OrbChain crypto checkout when configured, else Telegram Stars. Crypto
+        # can't auto-renew, so `recurring` only affects the Telegram Star invoice.
         if settings.orbchain_api_key and provider != "telegram":
             invoice_url = await self._create_orbchain_invoice(order_id, to_pay)
             if invoice_url:
@@ -279,7 +319,7 @@ class OrderService:
                     amount_usd=await self._amount_usd(to_pay),
                 )
 
-        invoice_url = await self._create_telegram_invoice(order_id, to_pay)
+        invoice_url = await self._create_telegram_invoice(order_id, to_pay, recurring=recurring)
         if not invoice_url:
             invoice_url = f"https://t.me/{settings.bot_username}?start=invoice_{order_id}"
         return CheckoutOut(order_id=order_id, invoice_url=invoice_url, provider="telegram")
@@ -422,21 +462,29 @@ class OrderService:
             coins=[],  # picker already loaded on the client
         )
 
-    async def _create_telegram_invoice(self, order_id: int, amount_stars: int) -> str:
+    async def _create_telegram_invoice(
+        self, order_id: int, amount_stars: int, recurring: bool = False
+    ) -> str:
         if not settings.bot_token:
             return ""
+        payload = {
+            "title": f"Order #{order_id}",
+            "description": "Video content purchase",
+            "payload": str(order_id),
+            "provider_token": "",
+            "currency": "XTR",
+            "prices": [{"label": "Stars", "amount": amount_stars}],
+        }
+        # A subscription_period turns this into a native auto-renewing Star
+        # subscription; Telegram re-charges every 30 days and re-fires
+        # successful_payment, which fulfill() treats as a renewal.
+        if recurring:
+            payload["subscription_period"] = self.TELEGRAM_SUB_PERIOD_SEC
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.post(
                     f"https://api.telegram.org/bot{settings.bot_token}/createInvoiceLink",
-                    json={
-                        "title": f"Order #{order_id}",
-                        "description": "Video content purchase",
-                        "payload": str(order_id),
-                        "provider_token": "",
-                        "currency": "XTR",
-                        "prices": [{"label": "Stars", "amount": amount_stars}],
-                    },
+                    json=payload,
                     timeout=15.0,
                 )
                 data = resp.json()
@@ -593,9 +641,15 @@ class OrderService:
                 if telegram_payment_charge_id and not await self.payment_repo.find_by_telegram_charge_id(
                     telegram_payment_charge_id
                 ):
-                    # Unseen charge id on an already-paid order = a real second
-                    # payment (e.g. a stale duplicate invoice), not a webhook
-                    # retry — surface it for support/refund instead of silence.
+                    # An unseen charge id on an already-paid monthly subscription,
+                    # from Telegram (not "orb:"), is the auto-renewal firing again:
+                    # same invoice payload, new period. Record it and extend premium.
+                    if order.subscription_plan == "month" and not telegram_payment_charge_id.startswith("orb:"):
+                        return await self._fulfill_subscription_renewal(
+                            order, telegram_payment_charge_id, provider_payment_charge_id, total_amount
+                        )
+                    # Otherwise it's a real second payment (e.g. a stale duplicate
+                    # invoice), not a webhook retry — surface it for support/refund.
                     logger.warning(
                         "Duplicate payment for already-paid order %s (charge %s)",
                         order_id, telegram_payment_charge_id,
@@ -616,14 +670,7 @@ class OrderService:
             await self.redemption_repo.create(order.promo_code_id, order.user_id, order.id)
         if order.subscription_plan:
             # 3./4. Subscription order: extend premium access instead of delivering links.
-            days = self.SUB_DAYS.get(order.subscription_plan, 30)
-            # Row-lock the buyer: two orders fulfilled concurrently must not both
-            # read the same premium_until and overwrite each other's extension.
-            buyer = await self.user_repo.get_by_id_for_update(order.user_id)
-            if buyer:
-                now = datetime.now(timezone.utc)
-                base = buyer.premium_until if buyer.premium_until and buyer.premium_until > now else now
-                buyer.premium_until = base + timedelta(days=days)
+            await self._extend_premium(order.user_id, order.subscription_plan)
         else:
             # 3. Increment product purchases (single bulk UPDATE; no N+1)
             await self.product_repo.bulk_increment_purchases(

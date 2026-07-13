@@ -48,7 +48,7 @@ class CheckoutIn(BaseModel):
 
 
 class SubscriptionCheckoutIn(BaseModel):
-    plan: Literal["week", "month", "year"]
+    plan: Literal["month", "year"]
     provider: Optional[str] = None
 
 
