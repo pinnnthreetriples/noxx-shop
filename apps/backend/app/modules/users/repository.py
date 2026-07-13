@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
+from sqlalchemy.exc import IntegrityError
 from app.modules.users.models import User
 
 
@@ -34,6 +35,27 @@ class UserRepository:
         self.db.add(user)
         await self.db.flush()
         return user
+
+    async def get_or_create_by_telegram_id(self, telegram_id: int, defaults: dict) -> User:
+        """Race-safe get-or-create. Two concurrent first-time requests for the same
+        telegram_id would both miss the SELECT and both INSERT, so one raises
+        IntegrityError on the unique ix_users_telegram_id. The INSERT runs in a
+        SAVEPOINT: on conflict we roll just that back and return the row the winner
+        committed. Only creates — never mutates an existing user."""
+        existing = await self.get_by_telegram_id(telegram_id)
+        if existing:
+            return existing
+        try:
+            async with self.db.begin_nested():
+                user = User(telegram_id=telegram_id, **defaults)
+                self.db.add(user)
+                await self.db.flush()
+            return user
+        except IntegrityError:
+            existing = await self.get_by_telegram_id(telegram_id)
+            if existing is None:
+                raise
+            return existing
 
     async def upsert_by_telegram_id(self, telegram_id: int, defaults: dict) -> User:
         result = await self.db.execute(select(User).where(User.telegram_id == telegram_id))

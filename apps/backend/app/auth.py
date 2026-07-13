@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.security import get_user_from_init_data, decode_admin_token
 from app.models import User, Admin
 from app.modules.catalog.service import SUPPORTED_LANGUAGES
+from app.modules.users.repository import UserRepository
 
 security = HTTPBearer(auto_error=False)
 
@@ -34,21 +35,17 @@ async def get_current_user(
     if not telegram_id:
         raise HTTPException(status_code=401, detail="Invalid user data")
 
-    result = await db.execute(select(User).where(User.telegram_id == telegram_id))
-    user = result.scalars().first()
-    if not user:
-        user = User(
-            telegram_id=telegram_id,
+    user = await UserRepository(db).get_or_create_by_telegram_id(
+        telegram_id,
+        dict(
             username=user_info.get("username"),
             first_name=user_info.get("first_name"),
             last_name=user_info.get("last_name"),
             language_code=user_info.get("language_code"),
             selected_language=user_info.get("language_code"),
             started_bot_at=datetime.now(timezone.utc),
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        ),
+    )
 
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="User is blocked")
