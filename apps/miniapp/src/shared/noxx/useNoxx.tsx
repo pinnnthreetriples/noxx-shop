@@ -536,7 +536,7 @@ export function useNoxx() {
   const yearStars = settingsQ.data?.sub_price_year_stars ?? 2499
   const yearSavePct = Math.round((1 - yearUsd / (monthUsd * 12)) * 100)
   const subPlans = [
-    { code: 'month', name: 'Monthly', sub: 'Auto-renews monthly', usd: monthUsd, stars: monthStars, tag: '' },
+    { code: 'month', name: 'Monthly', sub: payCrypto ? '30 days access' : 'Auto-renews monthly', usd: monthUsd, stars: monthStars, tag: '' },
     { code: 'year', name: 'Yearly', sub: '365 days access', usd: yearUsd, stars: yearStars, tag: yearSavePct > 0 ? `BEST VALUE · ${yearSavePct}%` : '' },
   ].map((pp) => {
     const p = { ...pp, priceFmt: String(pp.stars), usdFmt: fmtUsd(pp.usd) }
@@ -683,6 +683,9 @@ export function useNoxx() {
     subPlans, subscribePrice: curPlan.priceFmt, subscribeUsd: curPlan.usdFmt,
     subscribeNow: () => { if (!subscribeMut.isPending) subscribeMut.mutate(selectedPlan) },
     subscribeBusy: subscribeMut.isPending,
+    // Stars + Monthly is the only combo that becomes a native auto-renewing
+    // Telegram Star subscription; crypto and yearly are always one-time.
+    subAutoRenew: !payCrypto && curPlan.code === 'month',
     subComingSoon: settingsQ.data?.subscription_coming_soon_enabled ?? true,
     subComingSoonText: settingsQ.data?.subscription_coming_soon_text || 'Subscriptions are coming soon.',
     // support / terms — admin-edited texts win, design defaults as fallback
