@@ -536,7 +536,7 @@ export function useNoxx() {
   const yearStars = settingsQ.data?.sub_price_year_stars ?? 2499
   const yearSavePct = Math.round((1 - yearUsd / (monthUsd * 12)) * 100)
   const subPlans = [
-    { code: 'month', name: 'Monthly', sub: payCrypto ? 'One-time · 30 days' : 'Auto-renews monthly', usd: monthUsd, stars: monthStars, tag: '' },
+    { code: 'month', name: 'Monthly', sub: payCrypto ? '30 days access' : 'Auto-renews monthly', usd: monthUsd, stars: monthStars, tag: '' },
     { code: 'year', name: 'Yearly', sub: '365 days access', usd: yearUsd, stars: yearStars, tag: yearSavePct > 0 ? `BEST VALUE · ${yearSavePct}%` : '' },
   ].map((pp) => {
     const p = { ...pp, priceFmt: String(pp.stars), usdFmt: fmtUsd(pp.usd) }
