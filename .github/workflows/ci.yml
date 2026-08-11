@@ -14,7 +14,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - run: npx --yes aislop@latest ci
+      # Pinned: @latest drifts. 0.14.x rescored the same known-structural
+      # warnings from 89 to 84, below the failBelow: 86 ratchet, turning every
+      # PR red without a line of new slop. Bump deliberately, with the score.
+      - run: npx --yes aislop@0.13.1 ci
 
   backend:
     name: backend (ruff + pytest)
