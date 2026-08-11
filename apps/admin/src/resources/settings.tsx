@@ -119,6 +119,11 @@ const SettingsPage = () => (
           helperText="Язык витрины до того, как пользователь выберет свой."
         />
         <BooleanInput source="notifications_enabled_by_default" label="Уведомления включены по умолчанию" />
+        <BooleanInput
+          source="demo_mode_enabled"
+          label="Демо-режим (скрыть все товары)"
+          helperText="Витрина показывает только демонстрационный товар, реальные товары скрыты от пользователей. Купить демо-товар нельзя."
+        />
       </FormTab>
 
       <FormTab label="Цены и Stars">
