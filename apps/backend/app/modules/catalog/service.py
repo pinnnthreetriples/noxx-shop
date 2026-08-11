@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.orm import selectinload
 from app.models import Product, ProductTranslation, ProductTag, Category, Tag
+from app.modules.catalog.repository import storefront_filter
 from app.modules.catalog.schemas import ProductListItem, ProductDetail, CategoryOut, TagOut
 from app.modules.pricing import gross_stars, gross_usd, load_commission
 from app.core.exceptions import NotFoundException
@@ -105,7 +106,7 @@ async def list_products(
     stmt = (
         select(Product)
         .options(*_EAGER)
-        .where(Product.status == "published")
+        .where(await storefront_filter(db))
         .order_by(desc(getattr(Product, sort, Product.trend_score)))
         .limit(limit)
         .offset(offset)
@@ -134,7 +135,7 @@ async def list_products(
 async def get_product_by_slug(db: AsyncSession, user, slug: str) -> ProductDetail:
     lang = resolve_language(user)
     result = await db.execute(
-        select(Product).options(*_EAGER).where(Product.slug == slug, Product.status == "published")
+        select(Product).options(*_EAGER).where(Product.slug == slug, await storefront_filter(db))
     )
     product = result.scalars().first()
     if not product:

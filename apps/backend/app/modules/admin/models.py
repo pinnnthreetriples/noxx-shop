@@ -62,6 +62,8 @@ class Setting(Base):
     refund_policy_text_sr: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     refund_policy_text_tr: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notifications_enabled_by_default: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Demo mode: the storefront hides every real product and shows only the demo one
+    demo_mode_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     subscription_coming_soon_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     subscription_coming_soon_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # Auto-discount tiers (the best single one applies, then promo on top)

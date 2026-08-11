@@ -5,6 +5,7 @@ from app.core.config import settings as config
 from app.models import Base
 from app.modules.admin.models import AdminLog, Setting
 from app.modules.admin_api.settings.repository import SettingsAdminRepository
+from app.modules.catalog.repository import ensure_demo_product
 
 # Tables preserved by a full reset: admin accounts (never lock the operator out),
 # the settings singleton (pricing/config the admin set up), the migration marker,
@@ -69,6 +70,9 @@ class SettingsAdminService:
         _validate_pricing_bounds(payload)
         setting = await self.repo.get_or_create()
         await self.repo.update(setting, {k: v for k, v in payload.items() if hasattr(setting, k) and k != "id"})
+        if payload.get("demo_mode_enabled"):
+            # The storefront now serves only this product, so it has to exist.
+            await ensure_demo_product(self.db)
         self.db.add(AdminLog(admin_id=admin.id, action="update_settings", entity_type="settings", entity_id=setting.id))
         await self.db.commit()
         await self.db.refresh(setting)
@@ -81,6 +85,11 @@ class SettingsAdminService:
         tables = [t.name for t in Base.metadata.sorted_tables if t.name not in _RESET_KEEP_TABLES]
         quoted = ", ".join(f'"{t}"' for t in tables)
         await self.db.execute(text(f"TRUNCATE {quoted} RESTART IDENTITY CASCADE"))
+        # The settings row survives the reset but products don't — put the demo
+        # product back, otherwise demo mode would leave an empty storefront.
+        setting = await self.repo.get_or_create()
+        if setting.demo_mode_enabled:
+            await ensure_demo_product(self.db)
         self.db.add(AdminLog(admin_id=admin.id, action="reset_all_data", entity_type="settings", entity_id=1))
         await self.db.commit()
         return {"ok": True, "cleared": tables}

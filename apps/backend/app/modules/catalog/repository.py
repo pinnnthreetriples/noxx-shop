@@ -1,9 +1,66 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func, or_, and_, update
+from sqlalchemy import ColumnElement, select, desc, func, or_, and_, update
+from app.modules.admin.models import Setting
 from app.modules.catalog.models import Product, Category, Tag, ProductTag, ProductTranslation
 from app.modules.favorites.models import RecentlyViewed
 from app.modules.catalog.models import ProductStatus
+
+# The one fake product the storefront shows while demo mode is on. It lives as a
+# normal row with status `hidden`, so with demo mode off every existing query
+# skips it — including checkout, which is why it can never be bought.
+DEMO_PRODUCT_SLUG = "demo-preview"
+
+# Only en/ru: every other language falls back to en in the catalog service.
+_DEMO_TRANSLATIONS = {
+    "en": (
+        "Demo product",
+        "A demonstration item shown while the shop is in demo mode. "
+        "It is not for sale — the real catalog is hidden.",
+    ),
+    "ru": (
+        "Демонстрационный товар",
+        "Демонстрационная позиция, которая показывается, пока магазин в демо-режиме. "
+        "Она не продаётся — реальный каталог скрыт.",
+    ),
+}
+
+
+async def storefront_filter(db: AsyncSession) -> ColumnElement[bool]:
+    """What the storefront may show: in demo mode only the demo product, otherwise
+    every published product. Single source of truth so the catalog list and the
+    product page can't disagree."""
+    row = (await db.execute(select(Setting.demo_mode_enabled).limit(1))).first()
+    if row and row[0]:
+        return Product.slug == DEMO_PRODUCT_SLUG
+    return Product.status == ProductStatus.published
+
+
+async def ensure_demo_product(db: AsyncSession) -> Product:
+    """Create the demo product, or revive it if it was soft-deleted. Idempotent:
+    called every time demo mode is switched on, which is what heals it after a
+    full data reset wiped the products table."""
+    product = (await db.execute(
+        select(Product).where(Product.slug == DEMO_PRODUCT_SLUG)
+    )).scalars().first()
+    if product is not None:
+        if product.status == ProductStatus.deleted:
+            product.status = ProductStatus.hidden
+        return product
+    product = Product(
+        slug=DEMO_PRODUCT_SLUG,
+        status=ProductStatus.hidden,
+        price_stars=250,
+        display_views=1284,
+        display_purchases=317,
+    )
+    db.add(product)
+    await db.flush()
+    for lang, (title, description) in _DEMO_TRANSLATIONS.items():
+        db.add(ProductTranslation(
+            product_id=product.id, language_code=lang, title=title, description=description,
+        ))
+    return product
 
 
 class ProductRepository:
@@ -21,8 +78,8 @@ class ProductRepository:
         premium_only: bool = False,
         language_code: str = "en",
     ) -> Tuple[List[Product], int]:
-        stmt = select(Product).where(Product.status == ProductStatus.published)
-        
+        stmt = select(Product).where(await storefront_filter(self.db))
+
         if category_id:
             stmt = stmt.where(Product.category_id == category_id)
         if premium_only:
@@ -56,7 +113,9 @@ class ProductRepository:
         return list(products), total
 
     async def get_by_slug(self, slug: str) -> Optional[Product]:
-        result = await self.db.execute(select(Product).where(Product.slug == slug, Product.status == ProductStatus.published))
+        result = await self.db.execute(
+            select(Product).where(Product.slug == slug, await storefront_filter(self.db))
+        )
         return result.scalars().first()
 
     async def get_by_id(self, product_id: int) -> Optional[Product]:

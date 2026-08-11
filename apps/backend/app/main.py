@@ -77,6 +77,10 @@ async def _add_missing_columns(conn):
     await conn.exec_driver_sql(
         "ALTER TABLE settings ADD COLUMN IF NOT EXISTS sub_price_year_usd NUMERIC(10,2) NOT NULL DEFAULT 49.98"
     )
+    # Demo mode storefront switch (also in alembic migration b7e1c9d2f480).
+    await conn.exec_driver_sql(
+        "ALTER TABLE settings ADD COLUMN IF NOT EXISTS demo_mode_enabled BOOLEAN NOT NULL DEFAULT false"
+    )
 
 
 @asynccontextmanager
