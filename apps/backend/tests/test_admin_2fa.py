@@ -208,8 +208,14 @@ async def test_enable_cannot_rebind_an_already_enabled_second_factor(monkeypatch
         owner = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
         assert (await c.post("/auth/2fa/enable", json={"code": owner.now()}, headers=h)).status_code == 200
 
-        # the attacker re-runs the enrollment flow with the same valid session
-        attacker = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
+        # the attacker re-runs the enrollment flow with the same valid session:
+        # setup no longer hands out a secret, so no pending secret is even parked
+        planted = await c.post("/auth/2fa/setup", headers=h)
+        assert planted.status_code == 400
+        assert "already enabled" in planted.json()["detail"]
+
+        # and enable stays shut regardless of what sits in totp_pending_secret
+        attacker = pyotp.TOTP(pyotp.random_base32())
         rebind = await c.post("/auth/2fa/enable", json={"code": attacker.now()}, headers=h)
         assert rebind.status_code == 400
         assert "already enabled" in rebind.json()["detail"]
@@ -223,3 +229,62 @@ async def test_enable_cannot_rebind_an_already_enabled_second_factor(monkeypatch
         h = {"x-admin-token": (await _login(c)).json()["token"]}  # disable revoked the old token
         new = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
         assert (await c.post("/auth/2fa/enable", json={"code": new.now()}, headers=h)).status_code == 200
+
+
+def _counting_limiter(monkeypatch, allowed: int):
+    """Replace the redis limiter with an in-process fixed counter.
+
+    too_many_attempts fails open when redis is unreachable, so the real one
+    can't be asserted on in tests; what matters here is that the handlers are
+    wired to it at all and that each endpoint counts under its own per-admin
+    key. Returns the list of (key, limit, window) it was called with."""
+    calls = []
+
+    async def fake(key, limit, window_seconds):
+        calls.append((key, limit, window_seconds))
+        return sum(1 for k, _, _ in calls if k == key) > allowed
+
+    monkeypatch.setattr(auth_router, "too_many_attempts", fake)
+    return calls
+
+
+async def test_2fa_disable_is_rate_limited(monkeypatch):
+    """/auth/2fa/disable takes a TOTP *or* a backup code and strips the second
+    factor outright, so with a stolen session it is the cheapest thing in the
+    admin API to brute-force. It used to accept unlimited guesses."""
+    _cfg(monkeypatch, 900008)
+    async with _client() as c:
+        h = {"x-admin-token": (await _login(c)).json()["token"]}
+        totp = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
+        assert (await c.post("/auth/2fa/enable", json={"code": totp.now()}, headers=h)).status_code == 200
+
+        calls = _counting_limiter(monkeypatch, allowed=3)  # patched after enrollment
+        for _ in range(3):
+            bad = await c.post("/auth/2fa/disable", json={"code": _wrong_code(totp)}, headers=h)
+            assert bad.status_code == 401
+
+        blocked = await c.post("/auth/2fa/disable", json={"code": totp.now()}, headers=h)
+        assert blocked.status_code == 429  # a *correct* code is refused once the window is hot
+        assert (await c.get("/auth/2fa/status", headers=h)).json()["enabled"] is True
+
+        # per-admin key, not per-IP: the endpoint needs a JWT, so rotating the
+        # source address must not buy more guesses
+        assert {k.split(":")[0] for k, _, _ in calls} == {"admin-2fa-disable"}
+        assert all(k.split(":")[1].isdigit() for k, _, _ in calls)
+
+
+async def test_2fa_enable_is_rate_limited(monkeypatch):
+    _cfg(monkeypatch, 900009)
+    async with _client() as c:
+        h = {"x-admin-token": (await _login(c)).json()["token"]}
+        totp = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
+
+        calls = _counting_limiter(monkeypatch, allowed=3)
+        for _ in range(3):
+            bad = await c.post("/auth/2fa/enable", json={"code": _wrong_code(totp)}, headers=h)
+            assert bad.status_code == 401
+
+        blocked = await c.post("/auth/2fa/enable", json={"code": totp.now()}, headers=h)
+        assert blocked.status_code == 429
+        assert (await c.get("/auth/2fa/status", headers=h)).json()["enabled"] is False
+        assert {k.split(":")[0] for k, _, _ in calls} == {"admin-2fa-enable"}

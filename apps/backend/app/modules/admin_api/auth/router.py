@@ -56,6 +56,13 @@ async def twofa_status(admin: Admin = Depends(get_current_admin)):
 async def twofa_setup(
     admin: Admin = Depends(get_current_admin), db: AsyncSession = Depends(get_db)
 ):
+    # Same guard as /2fa/enable: a stolen JWT must not be able to park its own
+    # pending secret on an account that already has a second factor. Enable
+    # refuses to promote it today, but the column is still attacker-controlled
+    # and one missed check downstream turns that into a takeover. Re-enrolling
+    # goes through /auth/2fa/disable, which asks for the current code first.
+    if admin.totp_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled; disable it first to re-enroll")
     secret = pyotp.random_base32()
     admin.totp_pending_secret = encrypt_secret(secret)
     await db.commit()
@@ -71,6 +78,13 @@ async def twofa_enable(
     admin: Admin = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    # Keyed on the admin row, not the IP as /login is: these endpoints already
+    # demand a valid JWT, so the account is what's under attack and rotating
+    # source addresses must not buy more guesses. 5 tries per 5 minutes leaves
+    # room for a clock-skewed authenticator while making a 6-digit code
+    # (~1e6 values) unguessable.
+    if await too_many_attempts(f"admin-2fa-enable:{admin.id}", limit=5, window_seconds=300):
+        raise HTTPException(status_code=429, detail="Too many attempts, try again later")
     # Enrollment only. Without this, a stolen admin JWT could run setup+enable and
     # move the second factor onto the attacker's authenticator, locking the owner
     # out - the new code validates against the new pending secret, so the current
@@ -103,6 +117,11 @@ async def twofa_disable(
     admin: Admin = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    # The one endpoint that takes a backup code as well as a TOTP, and it strips
+    # the second factor outright, so it is the cheapest thing to brute-force with
+    # a stolen session. Same 5 per 5 minutes, keyed on the admin row.
+    if await too_many_attempts(f"admin-2fa-disable:{admin.id}", limit=5, window_seconds=300):
+        raise HTTPException(status_code=429, detail="Too many attempts, try again later")
     if not admin.totp_enabled:
         raise HTTPException(status_code=400, detail="2FA is not enabled")
     if not check_otp(admin, body.code):  # TOTP or a one-time backup code
