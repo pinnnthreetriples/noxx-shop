@@ -1,8 +1,8 @@
 """Admin repository - SQL operations only."""
 from typing import List, Optional, Tuple
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.admin.models import Admin
+from app.modules.admin.models import Admin, AdminRole
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, apply_updates
 
 
@@ -21,6 +21,14 @@ class AdminAdminRepository:
     async def get_by_id(self, id: int) -> Optional[Admin]:
         result = await self.db.execute(select(Admin).where(Admin.id == id))
         return result.scalars().first()
+    
+    async def count_other_active_owners(self, exclude_id: int) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(Admin)
+            .where(Admin.id != exclude_id, Admin.active.is_(True), Admin.role == AdminRole.owner)
+        )
+        return int((await self.db.execute(stmt)).scalar_one())
     
     async def create(self, **fields) -> Admin:
         admin = Admin(**fields)

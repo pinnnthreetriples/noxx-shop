@@ -7,7 +7,12 @@ from app.modules.orders.models import Order, OrderItem
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total, apply_updates
 
 # resend_links walks order.items -> item.product, so they must be eager-loaded.
-_ITEMS_EAGER = (selectinload(Order.items).selectinload(OrderItem.product),)
+# payment/user match what the list returns: react-admin renders the PUT response.
+_ITEMS_EAGER = (
+    selectinload(Order.items).selectinload(OrderItem.product),
+    selectinload(Order.payment),
+    selectinload(Order.user),
+)
 
 
 class OrderAdminRepository:
@@ -21,6 +26,10 @@ class OrderAdminRepository:
         total = await count_total(self.db, stmt)
         stmt = apply_sort(stmt, Order, f.sort_field, f.desc_order)
         stmt = stmt.offset(f.offset).limit(f.limit)
+        # Eager-load the payment so the list can label how the order was actually
+        # paid: a crypto order carries a Stars price but never earns Stars. The
+        # buyer comes along so the list can name them without an extra lookup.
+        stmt = stmt.options(selectinload(Order.payment), selectinload(Order.user))
         result = await self.db.execute(stmt)
         return list(result.scalars().all()), total
     

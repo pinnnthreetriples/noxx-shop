@@ -1,7 +1,7 @@
 import { useState, type MouseEvent } from 'react'
 import {
   List, Datagrid, TextField, NumberField, DateField, EditButton,
-  Edit, SimpleForm, SelectInput, SelectField,
+  Edit, SimpleForm, SelectInput, SelectField, FunctionField,
   Button, useRecordContext, useNotify, useRefresh,
   Toolbar, SaveButton,
 } from 'react-admin'
@@ -18,6 +18,31 @@ const statusChoices = [
   { id: 'cancelled', name: 'Отменён' },
   { id: 'refunded_manual', name: 'Возврат (вручную)' },
 ]
+
+// Setting an order to "paid" by hand settles nothing — no payment row, no links
+// delivered, no premium extended — so the backend rejects that transition with 400.
+// Display (and filtering) still needs the label, hence the separate list.
+const editableStatusChoices = statusChoices.filter((c) => c.id !== 'paid')
+
+const orderFilters = [<SelectInput key="status" source="status" choices={statusChoices} alwaysOn />]
+
+// How the order was actually settled. Crypto orders are priced in Stars like any
+// other order but are paid in coin, so they never show up in the bot's Star
+// balance — the charge id prefix ("orb:") is the only thing that tells them apart.
+const paymentMethod = (record: { payment?: { telegram_payment_charge_id?: string | null } | null }) => {
+  const chargeId = record.payment?.telegram_payment_charge_id
+  if (!chargeId) return '—'
+  return chargeId.startsWith('orb:') ? 'Крипта' : 'Stars'
+}
+
+// Who ordered. The list endpoint already nests the user, so read it from the record:
+// <ReferenceField> would make dataProvider.getMany fire one /admin/users/{id} request
+// per row (dataProvider.ts:89), i.e. 50 requests for a full page.
+const buyer = (record: { user?: { telegram_id?: number; username?: string | null } | null }) => {
+  const user = record.user
+  if (!user) return '—'
+  return user.username ? `@${user.username}` : String(user.telegram_id ?? '—')
+}
 
 // Re-deliver the digital links for a PAID order.
 // Mirrors the backend capability: POST /admin/orders/{id}/resend-links.
@@ -56,13 +81,17 @@ const ResendLinksButton = () => {
 }
 
 export const OrderList = () => (
-  <List>
+  <List filters={orderFilters} sort={{ field: 'id', order: 'DESC' }}>
     <Datagrid rowClick="edit" bulkActionButtons={false}>
       <TextField source="id" />
+      <FunctionField source="user" render={buyer} sortable={false} />
       <SelectField source="status" choices={statusChoices} />
       <NumberField source="total_stars" />
       <NumberField source="paid_stars" />
+      <NumberField source="approx_usd" emptyText="—" />
       <NumberField source="final_discount_percent" />
+      <FunctionField source="payment_method" render={paymentMethod} sortable={false} />
+      <TextField source="orbchain_track_id" emptyText="—" />
       <TextField source="subscription_plan" label="Подписка" />
       <DateField source="created_at" />
       <ResendLinksButton />
@@ -74,7 +103,7 @@ export const OrderList = () => (
 export const OrderEdit = () => (
   <Edit>
     <SimpleForm toolbar={<SaveOnlyToolbar />}>
-      <SelectInput source="status" choices={statusChoices} />
+      <SelectInput source="status" choices={editableStatusChoices} />
       <ResendLinksButton />
     </SimpleForm>
   </Edit>

@@ -172,12 +172,16 @@ class OrderService:
                 promo_code=None,
             )
         products = await self.product_repo.list_published_by_ids(product_ids)
+        # Price and discount must agree on the same cart: list_published_by_ids
+        # collapses duplicates and drops unknown ids, so the tiers are counted on
+        # what is actually being sold, not on whatever the client sent.
+        priced_ids = [p.id for p in products]
         commission = await load_commission(self.db)
         total = sum(gross_stars(p.price_stars, *commission) for p in products)
-        dinfo = await self.calculate_discounts(user, product_ids, promo_code, total)
+        dinfo = await self.calculate_discounts(user, priced_ids, promo_code, total)
         to_pay = int(total * (100 - dinfo["final_discount_percent"]) / 100)
         return CartEstimateOut(
-            product_ids=product_ids,
+            product_ids=priced_ids,
             total_stars=total,
             base_discount_percent=dinfo["base_discount_percent"],
             promo_discount_percent=dinfo["promo_discount_percent"],
@@ -207,7 +211,9 @@ class OrderService:
         commission = await load_commission(self.db)
         priced = [(p, gross_stars(p.price_stars, *commission)) for p in products]
         total = sum(stars for _, stars in priced)
-        dinfo = await self.calculate_discounts(user, product_ids, promo_code, total)
+        # Same cart for price and for discount tiers — see estimate_cart. Counting
+        # the raw ids let a cart of one product repeated 20 times claim the bulk tier.
+        dinfo = await self.calculate_discounts(user, [p.id for p in products], promo_code, total)
         to_pay = max(int(total * (100 - dinfo["final_discount_percent"]) / 100), 1)
 
         promo_code_id: Optional[int] = None
@@ -345,6 +351,16 @@ class OrderService:
         """USD charged for a Stars total (OrbChain has a $0.50 invoice floor)."""
         return max(round(stars * await self._star_rate(), 2), 0.5)
 
+    async def _invoiced_usd(self, order) -> float:
+        """The USD the OrbChain invoice was actually cut for, snapshotted at
+        checkout. Orders created before that snapshot existed (approx_usd NULL)
+        fall back to a live-rate recompute — the pre-existing behaviour, and the
+        only thing available for them; their 60-minute invoices are long expired,
+        so the fallback only ever runs on history, not on a payable invoice."""
+        if order.approx_usd:
+            return float(order.approx_usd)
+        return await self._amount_usd(order.paid_stars)
+
     async def _create_orbchain_invoice(self, order_id: int, amount_stars: int) -> str:
         from app.modules.payments_orbchain.client import create_invoice, OrbChainError
         amount_usd = await self._amount_usd(amount_stars)
@@ -358,12 +374,55 @@ class OrderService:
             )
             track_id = data.get("track_id")
             if track_id:
-                await self.order_repo.update_fields(order_id, {"orbchain_track_id": track_id})
+                # Snapshot the invoiced USD: the underpayment guard must compare
+                # against what the customer was actually billed, not against a
+                # recompute at whatever the Stars→USD rate says an hour later.
+                await self.order_repo.update_fields(
+                    order_id, {"orbchain_track_id": track_id, "approx_usd": amount_usd}
+                )
                 await self.db.commit()
             return data.get("payment_url", "")
         except OrbChainError as e:
             logger.warning("OrbChain invoice error: %s", e)
             return ""
+
+    async def _fulfill_polled_orbchain(self, order, data: Dict[str, Any]) -> str:
+        """Fulfill an invoice that OrbChain's status API reports as paid.
+        Returns "paid", "underpaid", or "confirming" (not fulfilled yet).
+
+        Unlike the signed webhook, the status response is not documented to carry
+        the credited amount, and polling (every 5s from the payment screen) nearly
+        always wins the race — so fulfilling here unconditionally is what makes the
+        guard dead code. Policy:
+          * amount present -> fulfill amount-guarded, exactly like the webhook;
+          * amount absent  -> if a webhook secret is configured, the webhook is
+            expected and is the only path that carries amounts, so leave the order
+            pending while the invoice can still be paid and let the webhook rule on
+            it. Once that window closes (or no webhook is configured at all, or the
+            invoice carries no readable expiry) fulfill blind rather than strand a
+            paid order: a delayed delivery beats a lost one.
+        """
+        from app.modules.payments_orbchain.client import credited_usd, payment_window_open
+        # transactions[] is the only unambiguous amount on the status API: a
+        # top-level amount_usd there could as easily be the invoiced amount as the
+        # received one, and a guard that silently compares the invoice against
+        # itself is worse than one that admits it has no data.
+        credited = credited_usd(data) if data.get("transactions") else None
+        if credited is None:
+            if settings.orbchain_webhook_secret and payment_window_open(data):
+                return "confirming"
+            logger.warning(
+                "OrbChain order %s fulfilled without an amount to check (track %s)",
+                order.id, order.orbchain_track_id,
+            )
+        result = await self.fulfill(
+            invoice_payload=str(order.id),
+            telegram_payment_charge_id=f"orb:{order.orbchain_track_id}",
+            provider_payment_charge_id=order.orbchain_track_id or "",
+            total_amount=0,
+            paid_usd=credited,
+        )
+        return "underpaid" if result.get("error") == "underpaid" else "paid"
 
     async def check_orbchain_payment(self, user, order_id: int) -> Dict[str, Any]:
         """Poll OrbChain for this order's status and fulfill it once Paid.
@@ -383,13 +442,8 @@ class OrderService:
             return {"paid": False, "status": "unavailable"}
         remote = (data.get("status") or "").lower()
         if remote == "paid":
-            await self.fulfill(
-                invoice_payload=str(order_id),
-                telegram_payment_charge_id=f"orb:{order.orbchain_track_id}",
-                provider_payment_charge_id=order.orbchain_track_id,
-                total_amount=0,
-            )
-            return {"paid": True, "status": "paid"}
+            state = await self._fulfill_polled_orbchain(order, data)
+            return {"paid": state == "paid", "status": state}
         return {"paid": False, "status": remote or order.status.value}
 
     async def get_orbchain_payment(self, user, order_id: int) -> Optional[PaymentStateOut]:
@@ -402,7 +456,7 @@ class OrderService:
         if not order:
             return None
         coins = [CoinOut(**c) for c in ORBCHAIN_COINS]
-        base: dict[str, Any] = dict(order_id=order_id, amount_usd=await self._amount_usd(order.paid_stars), coins=coins)
+        base: dict[str, Any] = dict(order_id=order_id, amount_usd=await self._invoiced_usd(order), coins=coins)
         if order.status.value == "paid":
             return PaymentStateOut(status="paid", paid=True, **base)
         if not order.orbchain_track_id:
@@ -412,17 +466,16 @@ class OrderService:
         except OrbChainError:
             return PaymentStateOut(status="pending", paid=False, **base)
         remote = (data.get("status") or "").lower()
+        state = "pending"
         if remote == "paid":
-            await self.fulfill(
-                invoice_payload=str(order_id),
-                telegram_payment_charge_id=f"orb:{order.orbchain_track_id}",
-                provider_payment_charge_id=order.orbchain_track_id,
-                total_amount=0,
-            )
-            return PaymentStateOut(status="paid", paid=True, **base)
+            state = await self._fulfill_polled_orbchain(order, data)
+            if state == "paid":
+                return PaymentStateOut(status="paid", paid=True, **base)
+        # Not (yet) fulfilled: keep returning the deposit panel, so a payment
+        # screen reopened in the "confirming"/"underpaid" state still resumes.
         addr = data.get("address")
         return PaymentStateOut(
-            status="pending", paid=False,
+            status=state, paid=False,
             pay_currency=data.get("pay_currency"),
             pay_amount=data.get("pay_amount"),
             address=addr,
@@ -453,7 +506,7 @@ class OrderService:
             order_id=order_id,
             status="paid" if remote == "paid" else "pending",
             paid=remote == "paid",
-            amount_usd=await self._amount_usd(order.paid_stars),
+            amount_usd=await self._invoiced_usd(order),
             pay_currency=data.get("pay_currency") or coin,
             pay_amount=data.get("pay_amount"),
             address=addr,
@@ -618,11 +671,15 @@ class OrderService:
             return {"ok": False, "error": "Order not found"}
 
         # Underpayment guard: OrbChain's signed payment webhook carries the credited
-        # USD in transactions[].amount_usd (its top-level `amount` is null). Only
+        # USD in transactions[].amount_usd (its top-level `amount` is null), and the
+        # polled status path supplies it whenever the response carries one. Only
         # enforced when a paid amount is supplied — the Telegram Stars path passes
-        # None. 2% tolerance absorbs FX/rounding.
+        # None; 0.0 ("transactions arrived, none credited") is enforced, not skipped.
+        # Compared against the amount the invoice was cut for, so a Stars→USD rate
+        # change inside the invoice's lifetime cannot manufacture a false
+        # underpayment. 2% tolerance absorbs FX/rounding.
         if paid_usd is not None:
-            expected_usd = await self._amount_usd(order.paid_stars)
+            expected_usd = await self._invoiced_usd(order)
             if expected_usd and paid_usd < expected_usd * 0.98:
                 logger.warning(
                     "Rejecting underpaid order %s: paid $%.2f < expected $%.2f",
@@ -662,7 +719,10 @@ class OrderService:
             telegram_payment_charge_id=telegram_payment_charge_id,
             provider_payment_charge_id=provider_payment_charge_id,
             status=PaymentStatus.paid.value,
-            stars_amount=total_amount,
+            # Crypto fulfillment carries no Telegram amount (total_amount=0), which
+            # would record every OrbChain payment as worth nothing. Fall back to the
+            # order's star price; for Stars payments total_amount already equals it.
+            stars_amount=total_amount or order.paid_stars,
         )
         # Promo bookkeeping on payment, not checkout: abandoned carts must not burn usage.
         if order.promo_code_id and not await self.redemption_repo.exists(order.promo_code_id, order.user_id):
@@ -694,21 +754,33 @@ class OrderService:
         result = await self._build_delivery_result(order_id)
         if not result.get("ok"):
             return
-        try:
-            import redis.asyncio as redis_async
-            r = redis_async.from_url(settings.redis_url, decode_responses=True)
+        import asyncio
+        from app.core.redis_client import redis_client
+        job = json.dumps({
+            "user_telegram_id": result["user_telegram_id"],
+            "message_text": result["message_text"],
+            "channel_id": result.get("channel_id"),
+            "videos": result.get("videos") or [],
+            "button": result.get("button"),
+        })
+        # The order is already paid, so a dropped enqueue is a paid-but-never-
+        # delivered order. Retry across a Redis blip/failover before giving up.
+        last_error: Optional[Exception] = None
+        for attempt in range(3):
             try:
-                await r.lpush("deliveries:queue", json.dumps({
-                    "user_telegram_id": result["user_telegram_id"],
-                    "message_text": result["message_text"],
-                    "channel_id": result.get("channel_id"),
-                    "videos": result.get("videos") or [],
-                    "button": result.get("button"),
-                }))
-            finally:
-                await r.aclose()
-        except Exception as e:
-            logger.warning("delivery enqueue failed for order %s: %s", order_id, e)
+                await redis_client.lpush("deliveries:queue", job)
+                return
+            except Exception as e:
+                last_error = e
+                if attempt < 2:
+                    await asyncio.sleep(0.5 * (attempt + 1))
+        # Nowhere durable left to put it: Redis is the queue. Log loudly (this
+        # reaches Sentry) so the order can be delivered by hand.
+        logger.error(
+            "delivery enqueue FAILED for PAID order %s after 3 attempts (%s) — "
+            "customer has paid and must be delivered manually",
+            order_id, last_error, exc_info=last_error,
+        )
 
     async def claim_with_premium(self, user, product_id: int) -> Dict[str, Any]:
         """Premium perk: an active subscriber gets any premium video at no cost.

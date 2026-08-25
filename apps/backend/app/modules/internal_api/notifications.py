@@ -1,5 +1,5 @@
-import json
 import logging
+from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
@@ -10,7 +10,9 @@ from app.modules.internal_api.schemas import (
     PopNotificationResponse,
     NotificationRecipientsResponse, NotificationRecipientItem,
 )
-import redis.asyncio as redis_async
+from app.modules.internal_api.bot_delivery import (
+    NOTIFICATION_QUEUE, JobAck, ack_job, get_redis, nack_job, reliable_pop,
+)
 from app.modules.notifications.service import NotificationService
 from app.modules.notifications.repository import NotificationRepository
 from app.modules.catalog.models import Product, ProductTranslation
@@ -34,39 +36,64 @@ async def notification_send_result(payload: NotificationSendResultRequest, db: A
     return NotificationSendResultResponse(ok=True)
 
 
-@router.post("/pop", response_model=PopNotificationResponse)
+class PopNotificationJob(PopNotificationResponse):
+    """Pop response + the handle the bot needs to ack/nack the broadcast."""
+    job_id: Optional[str] = None
+
+
+@router.post("/pop", response_model=PopNotificationJob)
 async def pop_notification():
-    """Bot pops a notification job from Redis queue. Returns empty=True if queue is empty."""
+    """Bot pops a notification job from the Redis queue. The job stays in the
+    processing list until the bot acks it, so a backend/bot failure between the
+    pop and the last recipient replays the broadcast instead of losing it."""
     try:
-        r = redis_async.from_url(settings.redis_url, decode_responses=True)
-        try:
-            data = await r.rpop("notifications:queue")
-        finally:
-            await r.aclose()
+        payload, job_id = await reliable_pop(get_redis(), NOTIFICATION_QUEUE)
     except Exception as e:
         logger.warning("redis pop failed: %s", e)
-        return PopNotificationResponse(empty=True)
-    
-    if not data:
-        return PopNotificationResponse(empty=True)
-    
-    try:
-        payload = json.loads(data)
-    except Exception:
-        return PopNotificationResponse(empty=True)
-    
+        return PopNotificationJob(empty=True)
+
+    # reliable_pop returns both or neither; naming job_id here narrows it to str
+    # for the nack below, which the pair-return cannot express on its own.
+    if payload is None or job_id is None:
+        return PopNotificationJob(empty=True)
+
     notification_id = payload.get("notification_id")
     if not notification_id:
-        return PopNotificationResponse(empty=True)
-    
-    return PopNotificationResponse(
+        # Nothing identifies this broadcast, so no retry can rescue it.
+        await nack_job(get_redis(), NOTIFICATION_QUEUE, job_id,
+                       "missing notification_id", permanent=True)
+        return PopNotificationJob(empty=True)
+
+    return PopNotificationJob(
         empty=False,
+        job_id=job_id,
         notification_id=notification_id,
         title=payload.get("title"),
         body=payload.get("body"),
         product_id=payload.get("product_id"),
         webapp_url=settings.telegram_webapp_url,
     )
+
+
+@router.post("/ack")
+async def ack_notification(payload: JobAck):
+    """Broadcast finished — drop the job for good."""
+    try:
+        return {"ok": await ack_job(get_redis(), NOTIFICATION_QUEUE, payload.job_id)}
+    except Exception as e:
+        logger.error("notification ack failed for job %s: %s", payload.job_id, e)
+        return {"ok": False}
+
+
+@router.post("/nack")
+async def nack_notification(payload: JobAck):
+    """Broadcast failed — requeue it, or dead-letter it once attempts run out."""
+    try:
+        return {"ok": await nack_job(get_redis(), NOTIFICATION_QUEUE, payload.job_id,
+                                     payload.error, payload.permanent)}
+    except Exception as e:
+        logger.error("notification nack failed for job %s: %s", payload.job_id, e)
+        return {"ok": False}
 
 
 @router.get("/{notification_id}/recipients", response_model=NotificationRecipientsResponse)

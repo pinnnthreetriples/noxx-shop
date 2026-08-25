@@ -107,7 +107,9 @@ async def list_products(
         select(Product)
         .options(*_EAGER)
         .where(await storefront_filter(db))
-        .order_by(desc(getattr(Product, sort, Product.trend_score)))
+        # id breaks ties: trend_score is 0 for a fresh catalog, and without a
+        # second key the page a LIMIT returns is not stable between requests.
+        .order_by(desc(getattr(Product, sort, Product.trend_score)), desc(Product.id))
         .limit(limit)
         .offset(offset)
     )

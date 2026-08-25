@@ -2,6 +2,8 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
+from app.modules.orders.models import OrderStatus
+
 
 class OrderItemOut(BaseModel):
     id: int
@@ -24,7 +26,9 @@ class OrderOut(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    status: Optional[str] = None
+    # Typed as the enum, not str: an unknown status used to reach the DB and blow
+    # up on bind as a 500, where pydantic rejects it as a 422 up front.
+    status: Optional[OrderStatus] = None
 
 
 class OrderListResponse(BaseModel):

@@ -4,10 +4,8 @@ from app.core.database import get_db
 from app.modules.internal_api.schemas import (
     PreCheckoutRequest, PreCheckoutResponse,
     SuccessfulPaymentRequest, SuccessfulPaymentResponse,
-    AdminMessageMapRequest, AdminMessageMapResponse,
 )
 from app.modules.orders.service import OrderService
-from app.modules.support.service import SupportService
 
 router = APIRouter(prefix="/telegram", tags=["internal-telegram"])
 
@@ -51,14 +49,3 @@ async def successful_payment(payload: SuccessfulPaymentRequest, db: AsyncSession
         videos=result.get("videos") or [],
         error=result.get("error"),
     )
-
-
-@router.post("/admin-message-map", response_model=AdminMessageMapResponse)
-async def admin_message_map(payload: AdminMessageMapRequest, db: AsyncSession = Depends(get_db)):
-    service = SupportService(db)
-    await service.record_admin_message_map(
-        payload.admin_message_id,
-        payload.chat_id,
-        payload.ticket_id,
-    )
-    return AdminMessageMapResponse(ok=True)

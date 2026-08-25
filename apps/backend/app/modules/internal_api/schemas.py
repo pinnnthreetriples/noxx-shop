@@ -65,7 +65,13 @@ class NotificationSendResultResponse(BaseModel):
 
 class TicketNotification(BaseModel):
     ticket_id: int
-    user_telegram_id: int
+    # Nullable on purpose: get_unnotified_tickets resolves this from the users
+    # table and yields None when the row is gone. Requiring it made one orphaned
+    # ticket fail validation for the whole batch, 500 the endpoint and stall
+    # every ticket notification forever (admin_notified could never be set).
+    # Reported instead of skipped: the ticket still reaches the admins, gets
+    # marked notified and leaves the queue; the bot only prints this field.
+    user_telegram_id: Optional[int] = None
     topic: str
     created_at: datetime
     message: Optional[str] = None

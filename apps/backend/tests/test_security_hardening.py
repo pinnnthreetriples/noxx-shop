@@ -120,7 +120,7 @@ async def test_orbchain_webhook_uses_env_secret(monkeypatch):
 def test_credited_usd_sums_only_credited_transactions():
     # Shape per OrbChain's documented payment webhook body: top-level amount is
     # null; real value is in transactions[].amount_usd where status == CREDITED.
-    from app.modules.payments_orbchain.router import _credited_usd
+    from app.modules.payments_orbchain.client import credited_usd
     event = {
         "type": "payment", "status": "Paid", "amount": None,
         "transactions": [
@@ -128,14 +128,15 @@ def test_credited_usd_sums_only_credited_transactions():
             {"amount_usd": "5.00", "status": "PENDING"},  # not credited -> excluded
         ],
     }
-    assert _credited_usd(event) == 50.0
-    assert _credited_usd({"type": "payment", "status": "Paid"}) == 0.0
+    assert credited_usd(event) == 50.0
+    # no transactions and no amount at all: "no data", which must not read as $0 paid
+    assert credited_usd({"type": "payment", "status": "Paid"}) is None
 
 
 def test_credited_usd_falls_back_to_top_level_amount_usd():
     # No transactions[] -> use the top-level amount_usd (single-tx / envelope shape).
-    from app.modules.payments_orbchain.router import _credited_usd
-    assert _credited_usd({"event_type": "payment.paid", "amount_usd": "12.50"}) == 12.5
+    from app.modules.payments_orbchain.client import credited_usd
+    assert credited_usd({"event_type": "payment.paid", "amount_usd": "12.50"}) == 12.5
 
 
 def test_is_paid_recognizes_v2_and_legacy_shapes():
@@ -160,7 +161,7 @@ async def test_fulfill_blocks_underpayment(db_session, monkeypatch):
     svc = OrderService(db_session)
     # charge not seen before -> not an idempotent replay
     monkeypatch.setattr(svc.payment_repo, "find_by_telegram_charge_id", lambda *_: _aret(None))
-    monkeypatch.setattr(svc.order_repo, "get_by_id", lambda *_: _aret(SimpleNamespace(id=1, paid_stars=100)))
+    monkeypatch.setattr(svc.order_repo, "get_by_id", lambda *_: _aret(SimpleNamespace(id=1, paid_stars=100, approx_usd=None)))
     monkeypatch.setattr(svc, "_amount_usd", lambda *_: _aret(2.00))  # order costs $2.00
 
     res = await svc.fulfill("1", "orb:tx1", "tx1", 0, paid_usd=1.00)  # only $1.00 paid

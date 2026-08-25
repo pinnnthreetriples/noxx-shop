@@ -102,7 +102,7 @@ telegram-bot0Video/
 | `POST /internal/support/tickets/{id}/mark-notified` | Пометить тикет уведомлённым |
 | `GET  /internal/support/tickets/unnotified` | Список тикетов для уведомления |
 | `GET  /internal/support/admins/active` | Список telegram_id активных админов |
-| `POST /internal/bot/admin-message-map` | Сохранить маппинг admin_message_id → ticket_id |
+| `POST /internal/support/bot/admin-message-map` | Сохранить маппинг admin_message_id → ticket_id |
 | `POST /internal/notifications/send-result` | Зафиксировать результат отправки уведомления |
 | `POST /internal/notifications/pop` | Достать следующее уведомление из Redis |
 | `GET  /internal/notifications/{id}/recipients` | Получатели рассылки |

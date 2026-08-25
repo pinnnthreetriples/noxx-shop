@@ -1,7 +1,8 @@
 """PromoCode repository - SQL operations only."""
 from typing import List, Optional, Tuple
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.modules.orders.models import Order
 from app.modules.promos.models import PromoCode
 from app.modules.admin_api.filters import AdminListFilters, apply_sort, count_total
 
@@ -32,11 +33,15 @@ class PromoCodeAdminRepository:
         await self.db.flush()
         return pc
     
+    async def count_orders_using(self, id: int) -> int:
+        result = await self.db.execute(
+            select(func.count()).select_from(Order).where(Order.promo_code_id == id)
+        )
+        return result.scalar() or 0
+    
     async def update(self, pc: PromoCode, fields: dict) -> PromoCode:
+        # Dates arrive already parsed from PromoCodeUpdate.
         for k, v in fields.items():
-            if k in ("starts_at", "expires_at") and v:
-                from datetime import datetime
-                v = datetime.fromisoformat(v.replace("Z", "+00:00"))
             if hasattr(pc, k) and k not in ("id", "created_at", "updated_at"):
                 setattr(pc, k, v)
         return pc
