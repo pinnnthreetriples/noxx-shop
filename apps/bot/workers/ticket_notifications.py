@@ -6,9 +6,16 @@ from ..bot_instance import bot
 
 logger = logging.getLogger(__name__)
 
+# A ticket that cannot reach a single admin is retried on the next polls, but
+# not forever: otherwise one bad ticket blocks the cursor and every later
+# ticket behind it. After this many polls it is skipped and stays unnotified in
+# the admin panel (nothing is deleted), with a loud log line.
+MAX_NOTIFY_ATTEMPTS = 5
+
 
 async def periodic_ticket_checker():
     after_id = 0
+    attempts: dict[int, int] = {}
     while True:
         try:
             await asyncio.sleep(TICKET_POLL_INTERVAL_SEC)
@@ -21,7 +28,10 @@ async def periodic_ticket_checker():
             if not tickets:
                 continue
             admin_ids = await api_client.get_active_admin_telegram_ids()
-            for t in tickets:
+            # The cursor may only advance past tickets that are actually done;
+            # once one is left pending, everything after it must be re-polled.
+            stalled = False
+            for t in sorted(tickets, key=lambda x: x["ticket_id"]):
                 ticket_id = t["ticket_id"]
                 user_telegram_id = t["user_telegram_id"]
                 topic = t.get("topic") or ""
@@ -35,9 +45,11 @@ async def periodic_ticket_checker():
                 )
                 if user_message:
                     text += f"\n\n{user_message[:3000]}"
+                delivered = False
                 for admin_tg_id in admin_ids:
                     try:
                         sent = await bot.send_message(admin_tg_id, text)
+                        delivered = True
                         await api_client.record_admin_message_map(
                             admin_message_id=sent.message_id,
                             chat_id=sent.chat.id,
@@ -45,12 +57,33 @@ async def periodic_ticket_checker():
                         )
                     except Exception as e:
                         logger.warning("notify admin %s failed: %s", admin_tg_id, e)
-                # after successful dispatch mark ticket as notified
-                try:
-                    await api_client.mark_ticket_notified(ticket_id)
-                except Exception:
-                    logger.debug("mark_ticket_notified failed", exc_info=True)
-                after_id = max(after_id, ticket_id)
+                # Only mark notified once at least one admin actually got it —
+                # marking after a total failure loses the ticket for good.
+                done = False
+                if not delivered:
+                    logger.error("ticket %s reached none of the %s active admin(s)",
+                                 ticket_id, len(admin_ids))
+                else:
+                    try:
+                        await api_client.mark_ticket_notified(ticket_id)
+                        done = True
+                    except Exception as e:
+                        # Not marked -> the ticket is re-polled and admins may
+                        # get a duplicate. Better than a silent loss, and this
+                        # has to be visible in production (was logger.debug).
+                        logger.error("mark_ticket_notified failed for ticket %s: %s",
+                                     ticket_id, e)
+                if not done:
+                    tries = attempts[ticket_id] = attempts.get(ticket_id, 0) + 1
+                    if tries < MAX_NOTIFY_ATTEMPTS:
+                        stalled = True
+                        continue
+                    logger.error("giving up on ticket %s after %s attempts; it stays "
+                                 "unnotified and is visible in the admin panel",
+                                 ticket_id, tries)
+                attempts.pop(ticket_id, None)
+                if not stalled:
+                    after_id = max(after_id, ticket_id)
         except Exception as e:
             logger.exception("ticket checker fatal: %s", e)
             await asyncio.sleep(30)

@@ -49,8 +49,31 @@ async def _send(telegram_id, text, kb):
         return "failed", str(e)
 
 
+async def _ack(job_id):
+    """Confirm the broadcast; without it the backend replays the whole job."""
+    if not job_id:
+        return
+    try:
+        await api_client.client.post("/internal/notifications/ack", json={"job_id": job_id})
+    except Exception as e:
+        logger.warning("notification ack failed for job %s: %s", job_id, e)
+
+
+async def _nack(job_id, error, permanent=False):
+    if not job_id:
+        return
+    try:
+        await api_client.client.post(
+            "/internal/notifications/nack",
+            json={"job_id": job_id, "error": str(error)[:500], "permanent": permanent},
+        )
+    except Exception as e:
+        logger.warning("notification nack failed for job %s: %s", job_id, e)
+
+
 async def notification_dispatcher():
     while True:
+        job_id = None
         try:
             try:
                 payload = await api_client.pop_notification()
@@ -61,6 +84,7 @@ async def notification_dispatcher():
             if not payload or payload.get("empty"):
                 await asyncio.sleep(5)
                 continue
+            job_id = payload.get("job_id")
             notification_id = payload["notification_id"]
             fallback_title = payload.get("title") or ""
             fallback_body = payload.get("body") or ""
@@ -68,27 +92,40 @@ async def notification_dispatcher():
             try:
                 data = await api_client.get_notification_recipients(notification_id)
             except Exception as e:
+                # Backend restarting / timing out: put the broadcast back.
                 logger.warning("get recipients failed: %s", e)
+                await _nack(job_id, f"recipients: {e}")
                 continue
             product_slug = data.get("product_slug")
             titles = data.get("titles") or {}
-            for r in data.get("recipients", []):
-                telegram_id = r["telegram_id"]
-                lang = r.get("lang") or "en"
-                text, kb = _build_message(
-                    lang, titles, product_slug, fallback_title, fallback_body, webapp_url,
-                )
-                status, error = await _send(telegram_id, text, kb)
-                try:
-                    await api_client.notification_send_result(
-                        notification_id=notification_id,
-                        user_telegram_id=telegram_id,
-                        status=status,
-                        error=error,
+            try:
+                for r in data.get("recipients", []):
+                    telegram_id = r["telegram_id"]
+                    lang = r.get("lang") or "en"
+                    text, kb = _build_message(
+                        lang, titles, product_slug, fallback_title, fallback_body, webapp_url,
                     )
-                except Exception:
-                    logger.debug("failed to report delivery status", exc_info=True)
-                await asyncio.sleep(0.3)
+                    status, error = await _send(telegram_id, text, kb)
+                    try:
+                        await api_client.notification_send_result(
+                            notification_id=notification_id,
+                            user_telegram_id=telegram_id,
+                            status=status,
+                            error=error,
+                        )
+                    except Exception:
+                        logger.warning("failed to report delivery status for %s", telegram_id,
+                                       exc_info=True)
+                    await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.exception("broadcast %s interrupted: %s", notification_id, e)
+                await _nack(job_id, e)
+                continue
+            # Per-recipient failures are already recorded one by one, so the job
+            # is done even when some sends failed; replaying it would re-message
+            # everyone who did receive it.
+            await _ack(job_id)
         except Exception as e:
             logger.exception("notification dispatcher fatal: %s", e)
+            await _nack(job_id, e)
             await asyncio.sleep(10)
