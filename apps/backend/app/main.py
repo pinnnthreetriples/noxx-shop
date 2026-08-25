@@ -81,6 +81,22 @@ async def _add_missing_columns(conn):
     await conn.exec_driver_sql(
         "ALTER TABLE settings ADD COLUMN IF NOT EXISTS demo_mode_enabled BOOLEAN NOT NULL DEFAULT false"
     )
+    # Leftovers from the stars->USD price move: still NOT NULL, no default, and
+    # no longer on the Setting model, so SQLAlchemy cannot supply a value. The
+    # live row predates the move and hides this, but any get-or-create that has
+    # to INSERT a fresh settings row would hit NotNullViolation and kill every
+    # settings read. Drop the constraint rather than resurrect dead fields.
+    # Guarded per column so this also runs on a DB created from the current model,
+    # where the columns are absent (plain ALTER ... DROP NOT NULL would error).
+    await conn.exec_driver_sql(
+        "DO $$ DECLARE col text; BEGIN "
+        "FOREACH col IN ARRAY ARRAY['sub_price_month_stars', "
+        "'sub_price_week_stars', 'sub_price_year_stars'] LOOP "
+        "IF EXISTS (SELECT 1 FROM information_schema.columns "
+        "WHERE table_name = 'settings' AND column_name = col) THEN "
+        "EXECUTE format('ALTER TABLE settings ALTER COLUMN %I DROP NOT NULL', col); "
+        "END IF; END LOOP; END $$"
+    )
 
 
 @asynccontextmanager

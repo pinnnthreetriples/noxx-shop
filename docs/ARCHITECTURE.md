@@ -68,7 +68,7 @@ Endpoints:
 | `POST` | `/internal/support/tickets/{id}/mark-notified` | Пометить тикет как уведомлённый |
 | `GET`  | `/internal/support/tickets/unnotified` | Список тикетов, ожидающих уведомления админов |
 | `GET`  | `/internal/support/admins/active` | Список telegram_id активных админов |
-| `POST` | `/internal/bot/admin-message-map` | Сохранить маппинг admin_message_id → ticket_id |
+| `POST` | `/internal/support/bot/admin-message-map` | Сохранить маппинг admin_message_id → ticket_id |
 | `POST` | `/internal/notifications/send-result` | Зафиксировать результат отправки уведомления пользователю |
 | `POST` | `/internal/notifications/pop` | Достать следующее задание из Redis-очереди |
 | `GET`  | `/internal/notifications/{id}/recipients` | Список telegram_id получателей рассылки |

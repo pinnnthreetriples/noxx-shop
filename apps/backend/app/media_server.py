@@ -1,5 +1,6 @@
 import os
 import mimetypes
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,10 +17,13 @@ app.add_middleware(
 
 
 def _get_file_path(path: str) -> str:
-    full = os.path.abspath(os.path.join(MEDIA_ROOT, path))
-    if not full.startswith(os.path.abspath(MEDIA_ROOT)):
+    # Containment must be checked path-component-wise: a plain startswith on
+    # "/app/media" also accepts /app/media_server.py and any /app/media-* sibling.
+    root = Path(os.path.abspath(MEDIA_ROOT))
+    full = Path(os.path.abspath(os.path.join(MEDIA_ROOT, path)))
+    if not full.is_relative_to(root):
         raise HTTPException(status_code=403, detail="Access denied")
-    return full
+    return str(full)
 
 
 @app.get("/{path:path}")

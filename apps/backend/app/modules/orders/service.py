@@ -719,7 +719,10 @@ class OrderService:
             telegram_payment_charge_id=telegram_payment_charge_id,
             provider_payment_charge_id=provider_payment_charge_id,
             status=PaymentStatus.paid.value,
-            stars_amount=total_amount,
+            # Crypto fulfillment carries no Telegram amount (total_amount=0), which
+            # would record every OrbChain payment as worth nothing. Fall back to the
+            # order's star price; for Stars payments total_amount already equals it.
+            stars_amount=total_amount or order.paid_stars,
         )
         # Promo bookkeeping on payment, not checkout: abandoned carts must not burn usage.
         if order.promo_code_id and not await self.redemption_repo.exists(order.promo_code_id, order.user_id):
