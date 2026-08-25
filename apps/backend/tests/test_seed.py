@@ -7,22 +7,19 @@ without spinning up the whole seed pipeline.
 """
 import pytest
 from sqlalchemy import select
-from importlib import reload
 from types import SimpleNamespace
 
 
 @pytest.mark.asyncio
 async def test_create_default_admin_creates_when_missing(db_session, monkeypatch):
-    """create_default_admin creates an Admin row from env vars when none exists."""
-    monkeypatch.setenv("ADMIN_DEFAULT_TELEGRAM_ID", "123456789")
-    monkeypatch.setenv("ADMIN_DEFAULT_EMAIL", "owner@example.com")
-    monkeypatch.setenv("ADMIN_DEFAULT_PASSWORD", "secret123")
-    # Reload settings to pick up the new env values (pydantic_settings caches).
-    from app.core import config as config_module
-    reload(config_module)
-    from scripts.seed import create_default_admin
+    """create_default_admin creates an Admin row from config when none exists."""
+    from scripts import seed as seed_module
 
-    admin = await create_default_admin(db_session)
+    monkeypatch.setattr(
+        seed_module, "settings", SimpleNamespace(admin_default_telegram_id="123456789")
+    )
+
+    admin = await seed_module.create_default_admin(db_session)
 
     assert admin is not None
     assert admin.telegram_id == 123456789
@@ -36,15 +33,14 @@ async def test_create_default_admin_creates_when_missing(db_session, monkeypatch
 @pytest.mark.asyncio
 async def test_create_default_admin_idempotent(db_session, monkeypatch):
     """Running seed twice does not create duplicates — same Admin row returned."""
-    monkeypatch.setenv("ADMIN_DEFAULT_TELEGRAM_ID", "999111222")
-    monkeypatch.setenv("ADMIN_DEFAULT_EMAIL", "owner@example.com")
-    monkeypatch.setenv("ADMIN_DEFAULT_PASSWORD", "secret123")
-    from app.core import config as config_module
-    reload(config_module)
-    from scripts.seed import create_default_admin
+    from scripts import seed as seed_module
 
-    first = await create_default_admin(db_session)
-    second = await create_default_admin(db_session)
+    monkeypatch.setattr(
+        seed_module, "settings", SimpleNamespace(admin_default_telegram_id="999111222")
+    )
+
+    first = await seed_module.create_default_admin(db_session)
+    second = await seed_module.create_default_admin(db_session)
 
     assert first.id == second.id, "Idempotent: second call must return same admin row"
 

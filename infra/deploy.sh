@@ -21,7 +21,10 @@ if ! $DC pull -q $SERVICES 2>/dev/null; then
   exit 1
 fi
 
-up=$($DC up -d --no-build 2>&1)
+if ! up=$($DC up -d --no-build 2>&1); then
+  log "FAILED up $(git rev-parse --short HEAD)"
+  exit 1
+fi
 changed=$(printf '%s\n' "$up" | grep -cE 'Started|Recreated|Created')
 if [ "$changed" -eq 0 ]; then
   log "nochange $(git rev-parse --short HEAD)"
