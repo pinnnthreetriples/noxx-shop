@@ -86,7 +86,7 @@
 - `deps.py` — `verify_internal_secret` (403/503 на невалидный/незаданный секрет)
 - `schemas.py` — 16 Pydantic-схем для request/response
 - `router.py` — агрегатор с prefix `/internal` и `Depends(verify_internal_secret)`
-- `telegram.py` — `POST /internal/telegram/pre-checkout`, `POST /internal/telegram/successful-payment`, `POST /internal/telegram/admin-message-map`
+- `telegram.py` — `POST /internal/telegram/pre-checkout`, `POST /internal/telegram/successful-payment`
 - `support.py` — `POST /internal/support/admin-reply`, `GET /internal/support/tickets/unnotified`, `POST /internal/support/tickets/{id}/mark-notified`, `GET /internal/support/admins/active`, `POST /internal/support/bot/admin-message-map`
 - `notifications.py` — `POST /internal/notifications/send-result`, `POST /internal/notifications/pop`, `GET /internal/notifications/{id}/recipients`
 - `bot_delivery.py` — `/internal/bot/health`
