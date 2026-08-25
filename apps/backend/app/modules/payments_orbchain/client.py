@@ -1,5 +1,6 @@
 """Thin OrbChain REST client. Only what the shop needs: create a hosted invoice."""
 import logging
+import time
 from typing import Any, Dict, Optional
 
 import httpx
@@ -96,6 +97,46 @@ async def select_coin(track_id: str, pay_currency: str) -> Dict[str, Any]:
     except httpx.HTTPError as e:
         raise OrbChainError(f"OrbChain unreachable: {type(e).__name__}") from e
     return await get_payment(track_id)
+
+
+def credited_usd(payload: Dict[str, Any]) -> Optional[float]:
+    """USD actually credited for a payment, or None when the payload says nothing
+    about amounts.
+
+    Zero is an answer ("nothing landed"), not missing data, so it is never
+    collapsed into None — the caller must be able to tell "no money" from "no
+    data". On the multi-transaction shape the top-level `amount` is null and the
+    real value is per settled transaction, so the CREDITED ones are summed; the
+    flat shape carries `amount_usd` instead. Works on both the signed webhook
+    event and the status-API `data` object.
+    """
+    txs = payload.get("transactions")
+    if isinstance(txs, list) and txs:
+        return sum(
+            float(t.get("amount_usd") or 0)
+            for t in txs
+            if str(t.get("status", "")).upper() == "CREDITED"
+        )
+    try:
+        return float(payload["amount_usd"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def payment_window_open(payload: Dict[str, Any]) -> bool:
+    """True only when `expires_at` proves the invoice can still be paid.
+
+    Callers use this to hold a fulfillment back while a better-informed signal
+    (the amount-carrying webhook) may still arrive, so anything we cannot read
+    as seconds-since-epoch inside a sane horizon answers False: an odd unit or a
+    missing field must never hold an order back forever.
+    """
+    try:
+        expires = float(payload["expires_at"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    now = time.time()
+    return now < expires < now + 86400
 
 
 def qr_data_uri(text: str) -> str:

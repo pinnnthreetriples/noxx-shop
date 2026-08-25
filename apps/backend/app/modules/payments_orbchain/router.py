@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.modules.orders.service import OrderService
+from app.modules.payments_orbchain.client import credited_usd
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="")
@@ -23,19 +24,6 @@ def _verify(raw: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature.strip())
 
 
-def _credited_usd(event: dict) -> float:
-    """USD actually credited for a payment. On the multi-transaction shape the
-    top-level `amount` is null and the real value is per settled transaction, so
-    sum the CREDITED ones; fall back to a top-level `amount_usd` when the event
-    carries no transactions array."""
-    txs = event.get("transactions") or []
-    if txs:
-        return sum(
-            float(t.get("amount_usd") or 0)
-            for t in txs
-            if str(t.get("status", "")).upper() == "CREDITED"
-        )
-    return float(event.get("amount_usd") or 0)
 
 
 def _is_paid(event: dict, event_type_header: str) -> bool:
@@ -71,14 +59,16 @@ async def orbchain_webhook(request: Request, db: AsyncSession = Depends(get_db))
 
     order_id = event.get("order_id")
     if _is_paid(event, request.headers.get("x-event-type", "")) and order_id:
-        credited = _credited_usd(event)
+        # None = the event carries no amount at all (guard can't judge); 0.0 =
+        # transactions arrived but none CREDITED, which must block, not pass.
+        credited = credited_usd(event)
         track_id = event.get("track_id") or ""
         result = await OrderService(db).fulfill(
             invoice_payload=str(order_id),
             telegram_payment_charge_id=f"orb:{track_id}",
             provider_payment_charge_id=track_id,
             total_amount=0,
-            paid_usd=credited or None,
+            paid_usd=credited,
         )
         logger.info("OrbChain paid order_id=%s track=%s ok=%s", order_id, track_id, result.get("ok"))
     return {"ok": True}
