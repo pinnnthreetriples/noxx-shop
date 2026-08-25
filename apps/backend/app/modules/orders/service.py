@@ -172,12 +172,16 @@ class OrderService:
                 promo_code=None,
             )
         products = await self.product_repo.list_published_by_ids(product_ids)
+        # Price and discount must agree on the same cart: list_published_by_ids
+        # collapses duplicates and drops unknown ids, so the tiers are counted on
+        # what is actually being sold, not on whatever the client sent.
+        priced_ids = [p.id for p in products]
         commission = await load_commission(self.db)
         total = sum(gross_stars(p.price_stars, *commission) for p in products)
-        dinfo = await self.calculate_discounts(user, product_ids, promo_code, total)
+        dinfo = await self.calculate_discounts(user, priced_ids, promo_code, total)
         to_pay = int(total * (100 - dinfo["final_discount_percent"]) / 100)
         return CartEstimateOut(
-            product_ids=product_ids,
+            product_ids=priced_ids,
             total_stars=total,
             base_discount_percent=dinfo["base_discount_percent"],
             promo_discount_percent=dinfo["promo_discount_percent"],
@@ -207,7 +211,9 @@ class OrderService:
         commission = await load_commission(self.db)
         priced = [(p, gross_stars(p.price_stars, *commission)) for p in products]
         total = sum(stars for _, stars in priced)
-        dinfo = await self.calculate_discounts(user, product_ids, promo_code, total)
+        # Same cart for price and for discount tiers — see estimate_cart. Counting
+        # the raw ids let a cart of one product repeated 20 times claim the bulk tier.
+        dinfo = await self.calculate_discounts(user, [p.id for p in products], promo_code, total)
         to_pay = max(int(total * (100 - dinfo["final_discount_percent"]) / 100), 1)
 
         promo_code_id: Optional[int] = None

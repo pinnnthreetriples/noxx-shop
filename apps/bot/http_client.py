@@ -82,7 +82,7 @@ class InternalAPIClient:
         chat_id: int,
         ticket_id: int,
     ) -> dict:
-        resp = await self.client.post("/internal/bot/admin-message-map", json={
+        resp = await self.client.post("/internal/support/bot/admin-message-map", json={
             "admin_message_id": admin_message_id,
             "chat_id": chat_id,
             "ticket_id": ticket_id,

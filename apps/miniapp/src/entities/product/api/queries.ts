@@ -7,6 +7,7 @@ export interface ProductQuery {
   tag?: string
   search?: string
   premium?: boolean
+  limit?: number
 }
 
 /** Catalog list. The dev mock returns the seeded catalog regardless of params. */

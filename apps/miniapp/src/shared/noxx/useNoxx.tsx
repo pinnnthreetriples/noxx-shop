@@ -186,7 +186,10 @@ export function useNoxx() {
   const starRate = Number(settingsQ.data?.star_usd_rate) > 0
     ? Number(settingsQ.data?.star_usd_rate) : STAR_USD
 
-  const productsQ = useProducts()
+  // Cart, favourites and checkout are all derived from this one list, so a product
+  // missing from it cannot be bought at all. The endpoint defaults to 20 — ask for
+  // the server maximum until real pagination exists.
+  const productsQ = useProducts({ limit: 100 })
   const products = React.useMemo(() => productsQ.data ?? [], [productsQ.data])
   const recs = React.useMemo(() => products.map((p) => toRec(p, starRate)), [products, starRate])
 
