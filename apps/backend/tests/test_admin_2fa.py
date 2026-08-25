@@ -194,3 +194,32 @@ async def test_legacy_plaintext_secret_still_verifies_once_key_is_set(monkeypatc
     monkeypatch.setattr(settings, "admin_totp_enc_key", Fernet.generate_key().decode())
     async with _client() as c:
         assert (await _login(c, otp=totp.now())).status_code == 200
+
+
+async def test_enable_cannot_rebind_an_already_enabled_second_factor(monkeypatch):
+    """A stolen admin JWT could run setup + enable and move 2FA onto the
+    attacker's authenticator: the code was checked against the NEW pending
+    secret, never against the current factor. Re-enrolling now has to go
+    through /auth/2fa/disable, which asks for the current TOTP or a backup
+    code and revokes every outstanding token."""
+    _cfg(monkeypatch, 900007)
+    async with _client() as c:
+        h = {"x-admin-token": (await _login(c)).json()["token"]}
+        owner = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
+        assert (await c.post("/auth/2fa/enable", json={"code": owner.now()}, headers=h)).status_code == 200
+
+        # the attacker re-runs the enrollment flow with the same valid session
+        attacker = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
+        rebind = await c.post("/auth/2fa/enable", json={"code": attacker.now()}, headers=h)
+        assert rebind.status_code == 400
+        assert "already enabled" in rebind.json()["detail"]
+
+        # the owner's factor still rules the login, the attacker's does not
+        assert (await _login(c, otp=attacker.now())).status_code == 401
+        assert (await _login(c, otp=owner.now())).status_code == 200
+
+        # the legitimate re-key path: confirm with the current factor, then re-enroll
+        assert (await c.post("/auth/2fa/disable", json={"code": owner.now()}, headers=h)).status_code == 204
+        h = {"x-admin-token": (await _login(c)).json()["token"]}  # disable revoked the old token
+        new = pyotp.TOTP((await c.post("/auth/2fa/setup", headers=h)).json()["secret"])
+        assert (await c.post("/auth/2fa/enable", json={"code": new.now()}, headers=h)).status_code == 200

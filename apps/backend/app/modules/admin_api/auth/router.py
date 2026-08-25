@@ -71,6 +71,13 @@ async def twofa_enable(
     admin: Admin = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    # Enrollment only. Without this, a stolen admin JWT could run setup+enable and
+    # move the second factor onto the attacker's authenticator, locking the owner
+    # out - the new code validates against the new pending secret, so the current
+    # factor was never asked for. Re-keying goes through /auth/2fa/disable, which
+    # demands the current TOTP or a backup code and revokes every token.
+    if admin.totp_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled; disable it first to re-enroll")
     if not admin.totp_pending_secret:
         raise HTTPException(status_code=400, detail="Run /auth/2fa/setup first")
     pending = decrypt_secret(admin.totp_pending_secret)
