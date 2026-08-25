@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.auth import get_current_admin
 from app.modules.admin.models import Admin
+from app.modules.admin_api.orders.schemas import OrderUpdate
 from app.modules.admin_api.orders.service import OrderAdminService
 
 router = APIRouter(tags=["admin-orders"])
@@ -40,12 +41,17 @@ async def get_order(
 @router.put("/orders/{id}")
 async def update_order(
     id: int,
-    payload: dict,
+    payload: OrderUpdate,
     admin: Admin = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
     service = OrderAdminService(db)
-    order = await service.update(admin, id, payload)
+    # react-admin PUTs the whole record back; OrderUpdate drops everything but
+    # `status`, so money columns can't be rewritten through the admin form.
+    try:
+        order = await service.update(admin, id, payload.model_dump(exclude_unset=True, exclude_none=True))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
