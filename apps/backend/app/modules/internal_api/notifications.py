@@ -52,7 +52,9 @@ async def pop_notification():
         logger.warning("redis pop failed: %s", e)
         return PopNotificationJob(empty=True)
 
-    if payload is None:
+    # reliable_pop returns both or neither; naming job_id here narrows it to str
+    # for the nack below, which the pair-return cannot express on its own.
+    if payload is None or job_id is None:
         return PopNotificationJob(empty=True)
 
     notification_id = payload.get("notification_id")
