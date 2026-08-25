@@ -1,9 +1,15 @@
 """PromoCode admin service - use-case logic."""
 from typing import Optional, Dict, Any
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.promos.models import PromoCode
 from app.modules.admin_api.promo_codes.repository import PromoCodeAdminRepository
 from app.modules.admin_api.filters import AdminListFilters
+
+# Columns the form may legitimately blank out. Everything else is NOT NULL, so a
+# null coming back from react-admin (which echoes the whole record) is "not set",
+# not "clear it".
+CLEARABLE = {"usage_limit", "min_cart_total", "starts_at", "expires_at"}
 
 
 class PromoCodeAdminService:
@@ -20,21 +26,9 @@ class PromoCodeAdminService:
         return await self.repo.get_by_id(id)
     
     async def create(self, admin, payload: dict) -> PromoCode:
-        pc = await self.repo.create(
-            code=payload.get("code", ""),
-            discount_type=payload.get("discount_type", "percentage"),
-            discount_value=payload.get("discount_value", 0),
-            active=payload.get("active", True),
-            usage_limit=payload.get("usage_limit"),
-            first_purchase_only=payload.get("first_purchase_only", False),
-            min_cart_total=payload.get("min_cart_total"),
-        )
-        if payload.get("starts_at"):
-            from datetime import datetime
-            pc.starts_at = datetime.fromisoformat(payload["starts_at"].replace("Z", "+00:00"))
-        if payload.get("expires_at"):
-            from datetime import datetime
-            pc.expires_at = datetime.fromisoformat(payload["expires_at"].replace("Z", "+00:00"))
+        # payload comes from PromoCodeCreate: only real columns, dates already
+        # parsed into aware UTC datetimes, used_count not among them.
+        pc = await self.repo.create(**payload)
         await self.db.commit()
         await self.db.refresh(pc)
         return pc
@@ -43,7 +37,8 @@ class PromoCodeAdminService:
         pc = await self.repo.get_by_id(id)
         if not pc:
             return None
-        await self.repo.update(pc, {k: v for k, v in payload.items() if hasattr(pc, k) and k != "id"})
+        fields = {k: v for k, v in payload.items() if v is not None or k in CLEARABLE}
+        await self.repo.update(pc, fields)
         await self.db.commit()
         await self.db.refresh(pc)
         return pc
@@ -52,6 +47,19 @@ class PromoCodeAdminService:
         pc = await self.repo.get_by_id(id)
         if not pc:
             return None
+        # orders.promo_code_id has no ON DELETE, so deleting a redeemed code used
+        # to surface as an unexplained 500. The order history is the reason the
+        # row has to stay: say so instead.
+        used = await self.repo.count_orders_using(id)
+        if used:
+            raise ValueError(
+                f"Promo code is used in {used} order(s) and cannot be deleted. "
+                "Deactivate it instead."
+            )
         await self.repo.delete(pc)
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except IntegrityError as e:  # e.g. still attached to somebody's cart
+            await self.db.rollback()
+            raise ValueError("Promo code is still referenced elsewhere and cannot be deleted.") from e
         return pc

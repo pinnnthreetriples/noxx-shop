@@ -10,7 +10,15 @@ class PromoCodeRepository:
         self.db = db
 
     async def get_by_code(self, code: str) -> Optional[PromoCode]:
-        result = await self.db.execute(select(PromoCode).where(PromoCode.code == code))
+        # The code is stored exactly as the admin typed it, but the buyer types it
+        # by hand in the miniapp: "save20" and " SAVE20 " must reach the same row
+        # instead of "cannot be applied". order_by(id) keeps that deterministic if
+        # two rows ever differ only in case - the older one wins.
+        result = await self.db.execute(
+            select(PromoCode)
+            .where(func.lower(PromoCode.code) == code.strip().lower())
+            .order_by(PromoCode.id)
+        )
         return result.scalars().first()
 
     async def get_by_id(self, promo_id: int) -> Optional[PromoCode]:
